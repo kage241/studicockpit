@@ -597,7 +597,8 @@ button.check { cursor: pointer; }
 
   // ================= Zustand =================
   // Version 2: belegungen (Veranstaltungen), modulErgebnis (Prüfung/Note je Modul), termine, aufgaben, nachweise, schwerpunkt
-  function leer() { return { version: 2, geaendert: '', farbe: 'Lila', schwerpunkt: '', belegungen: [], modulErgebnis: {}, termine: [], aufgaben: [], nachweise: { info: false, rettungsschwimmer: false, expose: false } }; }
+  function isoOk(d) { return /^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : ''; }
+  function leer() { return { version: 2, geaendert: '', farbe: 'Lila', schwerpunkt: '', belegungen: [], wunschliste: [], modulErgebnis: {}, termine: [], aufgaben: [], nachweise: { info: false, rettungsschwimmer: false, expose: false } }; }
   function termineNorm(arr) {
     return Array.isArray(arr) ? arr.map(function (t) { return { tag: Math.max(0, Math.min(4, Number(t.tag) || 0)), von: t.von || '08:00', bis: t.bis || '10:00', rhythmus: ['woechentlich', 'gerade', 'ungerade'].indexOf(t.rhythmus) >= 0 ? t.rhythmus : 'woechentlich' }; }) : [];
   }
@@ -611,7 +612,10 @@ button.check { cursor: pointer; }
       n.geaendert = typeof s.geaendert === 'string' ? s.geaendert : '';
       n.schwerpunkt = s.schwerpunkt === 'TD' || s.schwerpunkt === 'SM' ? s.schwerpunkt : '';
       n.belegungen = (s.belegungen || []).filter(function (b) { return b && b.id; }).map(function (b) {
-        return { id: String(b.id), lvId: LV[b.lvId] ? b.lvId : '', modulId: modulOk(b.modulId), titel: String(b.titel || 'Veranstaltung'), cp: Number(b.cp) || 0, semester: SEMESTER.indexOf(b.semester) >= 0 ? b.semester : SEMESTER[0], status: BELEG_STATUS[b.status] ? b.status : 'geplant', farbe: farbeOk(b.farbe), termine: termineNorm(b.termine), moodle: /^https?:\/\//i.test(b.moodle || '') ? b.moodle : '', notiz: String(b.notiz || '') };
+        return { id: String(b.id), lvId: LV[b.lvId] ? b.lvId : '', modulId: modulOk(b.modulId), titel: String(b.titel || 'Veranstaltung'), cp: Number(b.cp) || 0, semester: SEMESTER.indexOf(b.semester) >= 0 ? b.semester : SEMESTER[0], status: BELEG_STATUS[b.status] ? b.status : 'geplant', farbe: farbeOk(b.farbe), termine: termineNorm(b.termine), moodle: /^https?:\/\//i.test(b.moodle || '') ? b.moodle : '', notiz: String(b.notiz || ''), beginn: isoOk(b.beginn), sitzungen: Number(b.sitzungen) > 0 ? Math.round(Number(b.sitzungen)) : null, fehltermine: Array.isArray(b.fehltermine) ? b.fehltermine.filter(function (d) { return isoOk(d); }).sort() : [] };
+      });
+      n.wunschliste = (s.wunschliste || []).filter(function (w) { return w && w.id; }).map(function (w) {
+        return { id: String(w.id), lvId: LV[w.lvId] ? w.lvId : '', modulId: modulOk(w.modulId), titel: String(w.titel || 'Veranstaltung'), cp: Number(w.cp) || 0, semester: SEMESTER.indexOf(w.semester) >= 0 ? w.semester : SEMESTER[0], termine: termineNorm(w.termine), notiz: String(w.notiz || ''), beginn: isoOk(w.beginn), abgelehnt: !!w.abgelehnt };
       });
       var me = s.modulErgebnis && typeof s.modulErgebnis === 'object' ? s.modulErgebnis : {};
       Object.keys(me).forEach(function (k) { if (!MOD[k]) return; var r = me[k] || {}; var note = Number(r.note); n.modulErgebnis[k] = { pruefung: PRUEF_STATUS[r.pruefung] ? r.pruefung : 'offen', note: note >= 1 && note <= 5 ? Math.round(note * 10) / 10 : null }; });
@@ -626,7 +630,7 @@ button.check { cursor: pointer; }
     n.belegungen = (Array.isArray(s.kurse) ? s.kurse : []).filter(function (k) { return k && k.id; }).map(function (k) {
       var lvId = LV[k.katalog] ? k.katalog : '';
       var modulId = lvId ? LV[lvId].modul : modulOk(BEREICH_ALT[k.bereich] || k.bereich);
-      return { id: String(k.id), lvId: lvId, modulId: modulId, titel: String(k.titel || 'Veranstaltung'), cp: Number(k.cp) || 0, semester: SEMESTER.indexOf(k.semester) >= 0 ? k.semester : SEMESTER[0], status: BELEG_STATUS[k.status] ? k.status : 'geplant', farbe: farbeOk(k.farbe), termine: termineNorm(k.termine), moodle: '', notiz: String(k.notiz || '') };
+      return { id: String(k.id), lvId: lvId, modulId: modulId, titel: String(k.titel || 'Veranstaltung'), cp: Number(k.cp) || 0, semester: SEMESTER.indexOf(k.semester) >= 0 ? k.semester : SEMESTER[0], status: BELEG_STATUS[k.status] ? k.status : 'geplant', farbe: farbeOk(k.farbe), termine: termineNorm(k.termine), moodle: '', notiz: String(k.notiz || ''), beginn: '', sitzungen: null, fehltermine: [] };
     });
     n.aufgaben = (Array.isArray(s.todos) ? s.todos : []).filter(function (t) { return t && t.id; }).map(function (t) { return { id: String(t.id), text: String(t.text || ''), erledigt: !!t.erledigt }; });
     n.nachweise.info = !!(s.checks && s.checks.info);
@@ -722,7 +726,7 @@ button.check { cursor: pointer; }
     var m = leer();
     m.farbe = wert3(b.farbe, l.farbe, r.farbe, lNeuer);
     m.schwerpunkt = wert3(b.schwerpunkt, l.schwerpunkt, r.schwerpunkt, lNeuer);
-    ['belegungen', 'termine', 'aufgaben'].forEach(function (k) { m[k] = liste3(b[k], l[k], r[k], lNeuer); });
+    ['belegungen', 'termine', 'aufgaben', 'wunschliste'].forEach(function (k) { m[k] = liste3(b[k], l[k], r[k], lNeuer); });
     m.modulErgebnis = karte3(b.modulErgebnis, l.modulErgebnis, r.modulErgebnis, lNeuer);
     m.nachweise = karte3(b.nachweise, l.nachweise, r.nachweise, lNeuer);
     m.geaendert = new Date().toISOString();
@@ -1026,6 +1030,269 @@ button.check { cursor: pointer; }
     return liste;
   }
 
+  // ================= Anwesenheit (Fehltermine) =================
+  // Vorlesungszeiten der RUB; Quelle WiSe 26/27: Fakultätstermine (Vorlesungen 12.10.2026–05.02.2027, Weihnachtsferien 23.12.2026–06.01.2027).
+  // Für spätere Semester sind die Daten noch nicht veröffentlicht: Die App schätzt dann mit 14 Wochen und markiert das.
+  var VORLESUNGSZEIT = { 'WiSe 26/27': { von: '2026-10-12', bis: '2027-02-05', pausen: [['2026-12-23', '2027-01-06']] } };
+  var FEHL_ANTEIL = 0.2;
+  function zaehltAnwesenheit(b) {
+    if (b.lvId) { var l = LV[b.lvId]; return l.art !== 'V' && l.art !== 'V+Ü'; }
+    return true; // eigene Kurse (z. B. Optionalbereich): zählen, mit Hinweis auf die dortige Regel
+  }
+  function termineImSemester(b, bisDatum) {
+    // Liefert alle Sitzungstermine (ISO-Daten) laut Stundenplan; bisDatum begrenzt auf vergangene
+    var vz = VORLESUNGSZEIT[b.semester];
+    if (!vz) return null;
+    var start = ausIso(b.beginn && b.beginn > vz.von ? b.beginn : vz.von), ende = ausIso(vz.bis), out = [];
+    if (bisDatum && bisDatum < ende) ende = bisDatum;
+    for (var d = new Date(start); d <= ende; d.setDate(d.getDate() + 1)) {
+      var wt = (d.getDay() + 6) % 7; if (wt > 4) continue;
+      var iso = isoDatum(d);
+      if (vz.pausen.some(function (p) { return iso >= p[0] && iso <= p[1]; })) continue;
+      var kw = isoKW(d);
+      b.termine.forEach(function (t) { if (t.tag === wt && passtRhythmus(t.rhythmus, kw)) out.push(iso); });
+    }
+    return out;
+  }
+  function anwesenheit(b) {
+    var geschaetzt = false, gesamt = b.sitzungen;
+    if (!gesamt) {
+      var alle = termineImSemester(b);
+      if (alle) gesamt = alle.length;
+      else { geschaetzt = true; gesamt = b.termine.reduce(function (a, t) { return a + (t.rhythmus === 'woechentlich' ? 14 : 7); }, 0); }
+    }
+    var erlaubt = Math.floor(gesamt * FEHL_ANTEIL);
+    return { gesamt: gesamt, erlaubt: erlaubt, gefehlt: b.fehltermine.length, rest: erlaubt - b.fehltermine.length, geschaetzt: geschaetzt, manuell: !!b.sitzungen };
+  }
+  function letzterTermin(b) {
+    // jüngster vergangener Sitzungstermin, der noch nicht als Fehltermin eingetragen ist
+    var heute = heute0(), vorbei = termineImSemester(b, heute) || [];
+    for (var i = vorbei.length - 1; i >= 0; i--) if (b.fehltermine.indexOf(vorbei[i]) < 0) return vorbei[i];
+    return isoDatum(heute);
+  }
+  function anwesenheitsKurse() { return state.belegungen.filter(function (b) { return b.status === 'laeuft' && b.termine.length && zaehltAnwesenheit(b); }); }
+  function anwesenheitKarte() {
+    var kurse = anwesenheitsKurse();
+    var h = '<section class="karte" aria-labelledby="h-anw"><h2 id="h-anw">Anwesenheit</h2><p class="leise">In Seminaren höchstens 20 % Fehltermine (Modulhandbuch). Vorlesungen haben keine Anwesenheitspflicht.</p>';
+    if (!kurse.length) h += '<p class="leise">Keine laufenden Seminare mit Terminen.</p>';
+    kurse.forEach(function (b) {
+      var a = anwesenheit(b), kl = a.rest < 0 ? 'bad' : a.rest <= 1 ? 'warn' : 'ok';
+      var farbe = kl === 'bad' ? 'var(--bad)' : kl === 'warn' ? 'var(--warn)' : 'var(--ok)';
+      h += '<div style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;background:var(--surface2)"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap"><b style="font-size:14px">' + esc(b.titel) + '</b><span class="num" style="font-size:13px;color:' + farbe + ';white-space:nowrap">' + (a.rest < 0 ? (-a.rest) + '× zu oft gefehlt' : 'noch ' + a.rest + '× fehlen erlaubt') + '</span></div>';
+      h += '<div class="balken" role="img" aria-label="' + a.gefehlt + ' von ' + a.erlaubt + ' erlaubten Fehlterminen"><i style="width:' + (a.erlaubt ? Math.min(100, a.gefehlt / a.erlaubt * 100) : (a.gefehlt ? 100 : 0)) + '%;background:' + farbe + '"></i></div>';
+      h += '<small class="leise">' + a.gefehlt + ' von ' + a.erlaubt + ' erlaubten Fehlterminen · ' + a.gesamt + ' Sitzungen' + (a.geschaetzt ? ' (geschätzt – Anzahl im Kurs anpassbar)' : a.manuell ? ' (selbst eingetragen)' : '') + (b.lvId ? '' : ' · Regel für diesen Kurs prüfen') + '</small>';
+      if (b.fehltermine.length) {
+        h += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+        b.fehltermine.forEach(function (d) { var dd = ausIso(d); h += '<button type="button" class="chip offen" data-action="fehl-weg" data-id="' + esc(b.id) + '" data-d="' + d + '" style="min-height:30px;cursor:pointer;background:none" aria-label="Fehltermin ' + datumKurz(dd) + ' entfernen">' + TAGE[(dd.getDay() + 6) % 7] + ' ' + datumKurz(dd) + ' ×</button>'; });
+        h += '</div>';
+      }
+      var vorschlag = letzterTermin(b);
+      h += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label class="sr" for="fd-' + esc(b.id) + '">Datum des Fehltermins</label><input id="fd-' + esc(b.id) + '" type="date" value="' + vorschlag + '" style="min-height:36px;border-radius:10px;border:1px solid var(--line);background:var(--surface);padding:0 8px;color:var(--fg)"><button type="button" class="btn klein" data-action="fehl-plus" data-id="' + esc(b.id) + '">+ Gefehlt</button></div>';
+      h += '</div>';
+    });
+    return h + '</section>';
+  }
+  function anwesenheitWarnungen() {
+    return anwesenheitsKurse().map(function (b) { return { b: b, a: anwesenheit(b) }; }).filter(function (x) { return x.a.rest <= 1 && (x.a.gefehlt > 0 || x.a.rest < 0); });
+  }
+
+  // ================= eCampus-Text auslesen =================
+  // Erwartet den kopierten Text einer Veranstaltungs-Detailseite (Strg+A, Strg+C).
+  var TAG_KURZ = { Mo: 0, Di: 1, Mi: 2, Do: 3, Fr: 4 };
+  var STOPPWORTE = { mit: 1, und: 1, der: 1, die: 1, das: 1, den: 1, dem: 1, des: 1, im: 1, in: 1, zur: 1, zum: 1, von: 1, schwerpunkt: 1, seminar: 1, vorlesung: 1, sws: 1, teil: 1 };
+  function woerter(s) { return String(s).toLowerCase().replace(/[^a-zäöüß0-9]+/g, ' ').split(' ').filter(function (w) { return w.length >= 3 && !STOPPWORTE[w]; }); }
+  function lvFinden(titel, modulId) {
+    var tw = woerter(titel), beste = null, score = 0;
+    SG.module.forEach(function (m) {
+      if (modulId && m.id !== modulId) return;
+      m.lv.forEach(function (l) {
+        var lw = woerter(l.titel.replace(/\(.*?\)/g, '')); if (!lw.length) return;
+        var treffer = lw.filter(function (w) { return tw.some(function (x) { return x === w || (w.length >= 5 && x.indexOf(w) === 0); }); }).length;
+        var s = treffer / lw.length;
+        if (s > score) { score = s; beste = l; }
+      });
+    });
+    return score >= 0.5 ? beste : null;
+  }
+  function ecampusLesen(text) {
+    var t = String(text || '').replace(/\r/g, '');
+    var feld = function (re) { var m = re.exec(t); return m ? m[1].trim() : ''; };
+    var r = { titel: feld(/Titel \(Deutsch\):\s*([^\n]+)/), nummer: feld(/Lehrveranstaltungsnummer\s+(\S+)/), artText: feld(/\bArt:\s*([^\n]+)/), sws: Number(feld(/\bSWS:?\s+(\d+)/)) || null, termine: [], beginn: '', raum: '', dozent: '', modulId: '', modulText: '', hinweise: [] };
+    if (!r.titel) { var z = t.split('\n').map(function (x) { return x.trim(); }).filter(Boolean); var i = z.indexOf('Veranstaltung'); if (i > 0) r.titel = z[i - 2] || ''; }
+    r.art = /vorlesung/i.test(r.artText) ? 'V' : /übung/i.test(r.artText) ? 'Ü' : /seminar/i.test(r.artText) ? 'S' : '';
+    var re = /(?:^|\n)[\t ]*(Mo|Di|Mi|Do|Fr|Sa|So)[\t ]+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})([^\n]*)/g, m;
+    while ((m = re.exec(t))) {
+      var rest = m[4], beginnM = /Beginn:\s*(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(rest), schema = /\((\d+)-tägl/.exec(rest);
+      if (TAG_KURZ[m[1]] === undefined) { r.hinweise.push('Termin am ' + m[1] + ' wird im Stundenplan (Mo–Fr) nicht angezeigt.'); continue; }
+      var beg = beginnM ? beginnM[3] + '-' + ('0' + beginnM[2]).slice(-2) + '-' + ('0' + beginnM[1]).slice(-2) : '';
+      var rhythmus = 'woechentlich';
+      if (schema && Number(schema[1]) === 14) rhythmus = beg ? (isoKW(ausIso(beg)) % 2 === 0 ? 'gerade' : 'ungerade') : 'gerade';
+      else if (schema && Number(schema[1]) !== 7) r.hinweise.push('Unbekannter Rhythmus „' + schema[1] + '-tägl.“ – bitte prüfen.');
+      if (schema && Number(schema[1]) === 14 && !beg) r.hinweise.push('14-tägig ohne Beginndatum: gerade/ungerade Woche bitte prüfen.');
+      var raum = rest.split(/Beginn:/)[0].replace(/\t+/g, ' ').trim();
+      r.termine.push({ tag: TAG_KURZ[m[1]], von: ('0' + m[2]).slice(-5), bis: ('0' + m[3]).slice(-5), rhythmus: rhythmus });
+      if (beg && (!r.beginn || beg < r.beginn)) r.beginn = beg;
+      if (raum && !r.raum) r.raum = raum;
+    }
+    var dz = /Dozent(?:en|in|innen)?\s*\n+\s*(?:Pfeil\s+)?([^\n]+)/.exec(t); if (dz) r.dozent = dz[1].replace(/^Pfeil\s*/, '').trim();
+    var mod = /Modul (\d+):\s*([^\n]*?), Sportwissenschaft, Bachelor \(ein Fach\), 2025/.exec(t);
+    if (mod) {
+      var nr = Number(mod[1]); r.modulText = 'Modul ' + nr + ': ' + mod[2];
+      if (nr <= 13) r.modulId = 'M' + nr;
+      else if (nr <= 19) r.modulId = state.schwerpunkt ? state.schwerpunkt + nr : '';
+      else if (nr === 20) r.modulId = 'M20';
+    } else if (/Optionalbereich/.test(t)) { r.modulId = 'OPT'; r.modulText = 'Optionalbereich'; }
+    else r.hinweise.push('Keine Zuordnung zum B. Sc. PO 2025 gefunden – Modul bitte selbst wählen.');
+    r.lv = r.titel ? lvFinden(r.titel, r.modulId && r.modulId !== 'OPT' ? r.modulId : '') : null;
+    if (!r.lv && r.titel && !r.modulId) r.lv = lvFinden(r.titel, '');
+    if (r.lv && !r.modulId) r.modulId = r.lv.modul;
+    r.cp = r.lv ? (r.lv.cpOptionen ? (r.sws && r.sws >= 4 ? 4 : 3) : r.lv.cp) : 0;
+    if (!r.termine.length) r.hinweise.push('Keine regelmäßigen Termine erkannt (z. B. Blockveranstaltung) – Termine bitte selbst eintragen.');
+    r.semester = r.beginn && SEMESTER.indexOf(semesterVon(ausIso(r.beginn))) >= 0 ? semesterVon(ausIso(r.beginn)) : naechstesSem();
+    r.ok = !!r.titel;
+    return r;
+  }
+  var einfuegenOffen = false, einfuegenErgebnis = null, einfuegenZiel = '';
+  function einfuegenHtml() {
+    var h = '<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="ein-h"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="ein-h">Aus eCampus einfügen</h2><button type="button" class="icon-btn" data-action="einfuegen-zu" aria-label="Schließen">×</button></div>';
+    h += '<p class="leise">Öffne in eCampus die Detailseite der Veranstaltung, markiere alles (Strg+A bzw. lange tippen → „Alles auswählen“), kopiere es und füge es hier ein.</p>';
+    h += '<div class="feld"><label for="ein-text">Text aus eCampus</label><textarea id="ein-text" style="min-height:120px;font-size:13px" placeholder="Lehrveranstaltungsnummer … Titel (Deutsch): …"></textarea></div><div><button type="button" class="btn primaer" data-action="einfuegen-lesen">Auslesen &amp; prüfen</button></div>';
+    var r = einfuegenErgebnis;
+    if (r && !r.ok) h += '<div class="konflikt warn" role="alert"><span aria-hidden="true">⚠</span><span>Darin habe ich keine eCampus-Veranstaltung gefunden. Bitte den ganzen Text der Detailseite kopieren.</span></div>';
+    if (r && r.ok) {
+      var probe = { id: '_probe', lvId: r.lv ? r.lv.id : '', modulId: r.modulId || 'SONST', titel: r.titel, cp: r.cp, semester: r.semester, status: 'geplant', termine: r.termine };
+      h += '<div style="display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;background:var(--surface2)"><b style="font-size:16px">' + esc(r.titel) + '</b>';
+      h += '<div class="fakten">';
+      [['Modul', r.modulId ? modulKurz(r.modulId) : 'nicht erkannt'], ['Im Katalog', r.lv ? r.lv.titel : 'keine passende Veranstaltung'], ['Credit Points', r.cp ? fmtCP(r.cp) + ' CP' : 'bitte eintragen'], ['Semester', r.semester], ['Termine', r.termine.map(function (x) { return TAGE[x.tag] + ' ' + x.von + '–' + x.bis + (x.rhythmus !== 'woechentlich' ? ' (14-tägig, ' + (x.rhythmus === 'gerade' ? 'gerade' : 'ungerade') + ' KW)' : ''); }).join(' · ') || '–'], ['Ort · Lehrende', [r.raum, r.dozent].filter(Boolean).join(' · ') || '–']].forEach(function (f) { h += '<div class="fakt"><span>' + f[0] + '</span><b>' + esc(f[1]) + '</b></div>'; });
+      h += '</div>';
+      r.hinweise.forEach(function (x) { h += regelZeile({ art: 'hinweis', text: x }); });
+      h += '<div style="display:flex;flex-direction:column;gap:6px"><span class="lbl" style="font-size:13px;color:var(--soft)">Kurs-Check</span>' + konflikte(probe).map(function (c) { return '<div class="konflikt ' + (c.warn ? 'warn' : 'ok') + '"><span aria-hidden="true">' + (c.warn ? '⚠' : '✓') + '</span><span>' + esc(c.text) + '</span></div>'; }).join('') + '</div>';
+      if (r.modulId && MOD[r.modulId]) { var mc = modulCP(r.modulId), mm = MOD[r.modulId]; h += '<p class="leise">' + esc(modulKurz(r.modulId)) + ': ' + fmtCP(mc.bestanden + mc.laeuft + mc.geplant) + ' von ' + fmtCP(mm.cp) + ' CP schon bestanden, laufend oder geplant.</p>'; }
+      h += '<div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn primaer" data-action="einfuegen-eintragen">Eintragen …</button><button type="button" class="btn" data-action="einfuegen-wunsch">Auf die Wunschliste (' + esc(r.semester) + ')</button></div></div>';
+    }
+    return h + '</div>';
+  }
+  function einfuegenOeffnen(ziel) { einfuegenOffen = true; einfuegenErgebnis = null; einfuegenZiel = ziel || ''; var o = document.getElementById('overlay'); o.innerHTML = einfuegenHtml(); o.hidden = false; var ta = document.getElementById('ein-text'); if (ta) ta.focus(); }
+  function einfuegenRender() { var o = document.getElementById('overlay'), ta = document.getElementById('ein-text'), wert = ta ? ta.value : ''; o.innerHTML = einfuegenHtml(); var nt = document.getElementById('ein-text'); if (nt) nt.value = wert; }
+  function einfuegenZu() { einfuegenOffen = false; einfuegenErgebnis = null; var o = document.getElementById('overlay'); o.hidden = true; o.innerHTML = ''; }
+  function ausErgebnis(r) {
+    var notiz = [r.raum, r.dozent ? 'Lehrende: ' + r.dozent : '', r.nummer ? 'eCampus ' + r.nummer : ''].filter(Boolean).join(' · ');
+    return { lvId: r.lv ? r.lv.id : '', modulId: r.modulId && MOD[r.modulId] ? r.modulId : 'SONST', titel: r.lv && r.lv.titel.length < r.titel.length ? r.titel : r.titel, cp: r.cp, semester: r.semester, termine: r.termine, notiz: notiz, beginn: r.beginn };
+  }
+
+  // ================= Belegungsplaner =================
+  function ueberschneiden(t1, t2) {
+    return t1.some(function (a) { return t2.some(function (b) {
+      if (a.tag !== b.tag) return false;
+      if ((a.rhythmus === 'gerade' && b.rhythmus === 'ungerade') || (a.rhythmus === 'ungerade' && b.rhythmus === 'gerade')) return false;
+      return minuten(a.von) < minuten(b.bis) && minuten(b.von) < minuten(a.bis);
+    }); });
+  }
+  function planerRechnen(sem) {
+    var fest = state.belegungen.filter(function (b) { return b.semester === sem && b.status !== 'bestanden' && b.termine.length; });
+    var schonBelegt = {}; state.belegungen.forEach(function (b) { if (b.semester === sem && b.lvId) schonBelegt[b.lvId] = true; });
+    var info = {}, kandidaten = [];
+    state.wunschliste.filter(function (w) { return w.semester === sem; }).forEach(function (w) {
+      if (w.abgelehnt) { info[w.id] = { art: 'abgelehnt', text: 'Platz nicht bekommen' }; return; }
+      if (w.lvId && schonBelegt[w.lvId] && !LV[w.lvId].mehrfach) { info[w.id] = { art: 'raus', text: 'Ist schon eingetragen' }; return; }
+      if (w.lvId) { var p = lvPruefen(LV[w.lvId], sem), f = p.gruende.filter(function (g) { return g.art === 'fehlt'; })[0]; if (f) { info[w.id] = { art: 'raus', text: f.text }; return; } }
+      var k = fest.filter(function (b) { return ueberschneiden(w.termine, b.termine); })[0];
+      if (k) { info[w.id] = { art: 'raus', text: 'Überschneidet sich mit ' + k.titel }; return; }
+      kandidaten.push(w);
+    });
+    // Restkapazität je Modul (damit nicht mehr CP eingeplant werden, als das Modul braucht)
+    var rest = {};
+    kandidaten.forEach(function (w) { if (MOD[w.modulId] && rest[w.modulId] === undefined) { var c = modulCP(w.modulId); rest[w.modulId] = MOD[w.modulId].cp - c.bestanden - c.laeuft - c.geplant; } });
+    kandidaten.sort(function (a, b) { return b.cp - a.cp; });
+    var best = [], bestCP = -1, gewaehlt = [];
+    var restSumme = function (i) { var s = 0; for (var j = i; j < kandidaten.length; j++) s += kandidaten[j].cp; return s; };
+    var aktuell = 0, schritte = 0;
+    (function suche(i) {
+      if (++schritte > 200000) return;
+      if (aktuell > bestCP) { bestCP = aktuell; best = gewaehlt.slice(); }
+      if (i >= kandidaten.length || aktuell + restSumme(i) <= bestCP) return;
+      var w = kandidaten[i];
+      var passt = !gewaehlt.some(function (g) { return (g.lvId && g.lvId === w.lvId && !LV[w.lvId].mehrfach) || ueberschneiden(g.termine, w.termine); });
+      var cpOk = !MOD[w.modulId] || rest[w.modulId] - w.cp >= -0.001;
+      if (passt && cpOk) {
+        gewaehlt.push(w); aktuell += w.cp; if (MOD[w.modulId]) rest[w.modulId] -= w.cp;
+        suche(i + 1);
+        gewaehlt.pop(); aktuell -= w.cp; if (MOD[w.modulId]) rest[w.modulId] += w.cp;
+      }
+      suche(i + 1);
+    })(0);
+    var gewaehltIds = {}; best.forEach(function (w) { gewaehltIds[w.id] = true; });
+    kandidaten.forEach(function (w) {
+      if (gewaehltIds[w.id]) { info[w.id] = { art: 'drin', text: 'In der besten Kombination' }; return; }
+      var g = best.filter(function (b) { return ueberschneiden(b.termine, w.termine); })[0];
+      var gleich = best.filter(function (b) { return b.lvId && b.lvId === w.lvId; })[0];
+      info[w.id] = { art: 'alternative', text: gleich ? 'Alternative zu „' + gleich.titel + '“' : g ? 'Überschneidet sich mit „' + g.titel + '“ (Ausweichoption)' : 'Modul hätte damit mehr CP als nötig' };
+    });
+    var cpFest = state.belegungen.filter(function (b) { return b.semester === sem && b.modulId !== 'SONST' && b.status !== 'bestanden'; }).reduce(function (a, b) { return a + b.cp; }, 0);
+    return { best: best, cp: Math.max(0, bestCP), cpFest: cpFest, info: info };
+  }
+  function planerAnsicht() {
+    var ziel = zielSemester && SEMESTER.indexOf(zielSemester) >= 0 ? zielSemester : naechstesSem();
+    var liste = state.wunschliste.filter(function (w) { return w.semester === ziel; });
+    var r = planerRechnen(ziel);
+    var h = '<section class="karte betont" aria-labelledby="h-plan"><div class="karte-kopf"><h2 id="h-plan">Belegungsplaner</h2><div class="feld" style="flex-direction:row;align-items:center;gap:8px"><label for="ziel-sem">Semester</label><select id="ziel-sem" style="width:auto">';
+    SEMESTER.forEach(function (s) { if (!semVorher(s, aktSem())) h += '<option' + (s === ziel ? ' selected' : '') + '>' + s + '</option>'; });
+    h += '</select></div></div><p class="leise">Sammle hier alle Kurse, die für ' + esc(ziel) + ' in Frage kommen, auch mehrere Gruppen derselben Veranstaltung. Die App sucht die Kombination ohne Überschneidungen mit den meisten CP. Bekommst du einen Platz nicht, tippst du auf „Platz nicht bekommen“, und sie rechnet neu.</p>';
+    h += '<div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn primaer" data-action="einfuegen" data-ziel="wunsch">+ Aus eCampus einfügen</button><button type="button" class="btn" data-action="studium-tab" data-tab="naechstes">Aus „Was kann ich belegen?“ hinzufügen</button></div>';
+    if (!liste.length) { h += '<div class="leer">Die Wunschliste für ' + esc(ziel) + ' ist leer.</div></section>'; return h; }
+    var gesamt = r.cp + r.cpFest;
+    h += '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:baseline"><span style="font-family:var(--display);font-size:30px;font-weight:700;color:var(--accent-hi)" class="num">+' + fmtCP(r.cp) + ' CP</span><span class="leise" style="font-size:14px">aus der Wunschliste · zusammen mit schon Eingetragenem <strong style="color:var(--fg)">' + fmtCP(gesamt) + ' CP</strong> in ' + esc(ziel) + (gesamt < 30 ? ' (Ziel: 30)' : '') + '</span></div>';
+    if (r.best.length) h += '<div><button type="button" class="btn primaer" data-action="plan-uebernehmen" data-sem="' + esc(ziel) + '">Beste Kombination eintragen (' + r.best.length + ')</button></div>';
+    var reihen = { drin: 0, alternative: 1, raus: 2, abgelehnt: 3 };
+    liste.slice().sort(function (a, b) { return reihen[r.info[a.id].art] - reihen[r.info[b.id].art]; }).forEach(function (w) {
+      var i = r.info[w.id], farbe = i.art === 'drin' ? 'var(--ok)' : i.art === 'alternative' ? 'var(--soft)' : i.art === 'abgelehnt' ? 'var(--muted)' : 'var(--bad)';
+      h += '<div class="lv" style="' + (i.art === 'drin' ? 'outline:1px solid var(--accent-line);' : '') + (i.art === 'abgelehnt' ? 'opacity:0.6;' : '') + '"><span class="t"><b style="font-weight:600">' + esc(w.titel) + '</b><small>' + esc(modulKurz(w.modulId)) + ' · ' + fmtCP(w.cp) + ' CP · ' + esc(w.termine.map(function (t) { return TAGE[t.tag] + ' ' + t.von + '–' + t.bis + (t.rhythmus !== 'woechentlich' ? ' (14-tägig)' : ''); }).join(', ') || 'ohne Termin') + '</small><small style="color:' + farbe + '">' + (i.art === 'drin' ? '✓ ' : '') + esc(i.text) + '</small></span><span class="re">';
+      h += '<button type="button" class="btn klein" data-action="wunsch-ablehnen" data-id="' + esc(w.id) + '">' + (w.abgelehnt ? 'Doch bekommen' : 'Platz nicht bekommen') + '</button><button type="button" class="icon-btn" data-action="wunsch-weg" data-id="' + esc(w.id) + '" aria-label="Von der Wunschliste entfernen" style="font-size:16px;color:var(--muted)">×</button></span></div>';
+    });
+    return h + '</section>';
+  }
+
+  // ================= Stand für Claude =================
+  function standText() {
+    var g = gesamtCP(), sem = aktSem(), z = [], ns = notenSchnitt();
+    z.push('Mein Studienstand (aus StudiCockpit, ' + new Date().toLocaleDateString('de-DE') + ')');
+    z.push('Studiengang: B. Sc. Sportwissenschaft, Ruhr-Universität Bochum, PO 2025. Aktuell ' + sem + ', ' + fachsem(sem) + '. Fachsemester.');
+    z.push('Schwerpunkt: ' + (state.schwerpunkt ? SP_NAME[state.schwerpunkt] : 'noch nicht gewählt'));
+    z.push('Credit Points: ' + fmtCP(g.bestanden) + ' bestanden, ' + fmtCP(g.laeuft) + ' laufen, ' + fmtCP(g.geplant) + ' geplant – von 180 (' + Math.round(g.bestanden / 1.8) + ' % geschafft).');
+    z.push('Nach Bereichen: ' + SG.bereiche.map(function (b) { var c = bereichCP(b.id); return b.kurz + ' ' + fmtCP(c.bestanden) + '/' + fmtCP(b.cp) + (c.laeuft ? ' (+' + fmtCP(c.laeuft) + ' laufen)' : ''); }).join('; ') + '.');
+    if (ns.schnitt) z.push('Vorläufiger Notenschnitt: ' + fmtNote(ns.schnitt) + ' aus ' + ns.anzahl + ' Modulnoten.');
+    z.push('');
+    z.push('Module:');
+    pflichtModule().forEach(function (m) {
+      if (m.sp && !state.schwerpunkt) return;
+      var st = modulStatus(m.id), c = modulCP(m.id), e = ergebnis(m.id);
+      var bel = belegungenVon(m.id).map(function (b) { return b.titel + ' (' + BELEG_STATUS[b.status] + ', ' + b.semester + ')'; });
+      z.push('- ' + modulTitel(m.id) + ': ' + MODUL_STATUS[st] + ', ' + fmtCP(c.bestanden) + '/' + fmtCP(m.cp) + ' CP' + (e.pruefung !== 'offen' ? ', Prüfung ' + PRUEF_STATUS[e.pruefung] + (e.note ? ' (' + fmtNote(e.note) + ')' : '') : '') + (bel.length ? ' – ' + bel.join('; ') : ''));
+    });
+    var sonst = state.belegungen.filter(function (b) { return b.modulId === 'SONST'; });
+    if (sonst.length) z.push('- Ohne Anrechnung: ' + sonst.map(function (b) { return b.titel; }).join(', '));
+    z.push('');
+    z.push('Nachweise: ' + SG.nachweise.map(function (n) { return n.name + ': ' + (state.nachweise[n.id] ? 'ja' : 'nein'); }).join('; ') + '.');
+    var an = anstehend(120);
+    if (an.length) { z.push('Anstehend: ' + an.map(function (x) { return (x.art === 'frist' ? x.titel + ' ' : '') + x.t.titel + ' am ' + x.datum.toLocaleDateString('de-DE'); }).join('; ') + '.'); }
+    z.push('');
+    z.push('Bitte beantworte meine Frage auf Grundlage dieses Stands sowie des Modulhandbuchs und der Prüfungsordnung im Projekt „studi programm“. Meine Frage:');
+    return z.join('\n');
+  }
+  var standOffen = false;
+  function standKopieren() {
+    var txt = standText();
+    var zeigen = function (hinweis) {
+      standOffen = true;
+      var o = document.getElementById('overlay');
+      o.innerHTML = '<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="st-h"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="st-h">Stand für Claude</h2><button type="button" class="icon-btn" data-action="stand-zu" aria-label="Schließen">×</button></div><p style="margin:0;color:' + (hinweis.ok ? 'var(--ok)' : 'var(--warn)') + '">' + esc(hinweis.text) + '</p><p class="leise">Öffne in der Claude-App das Projekt „studi programm“, füge den Text ein und schreib deine Frage dahinter.</p><div class="feld"><label for="stand-text">Dein Stand</label><textarea id="stand-text" readonly style="min-height:260px;font-size:12px">' + esc(txt) + '</textarea></div><div style="display:flex;justify-content:flex-end"><button type="button" class="btn primaer" data-action="stand-zu">Fertig</button></div></div>';
+      o.hidden = false;
+      if (!hinweis.ok) { var ta = document.getElementById('stand-text'); if (ta) { ta.focus(); ta.select(); } }
+    };
+    try { navigator.clipboard.writeText(txt).then(function () { zeigen({ ok: true, text: 'In die Zwischenablage kopiert.' }); }, function () { zeigen({ ok: false, text: 'Kopieren wurde blockiert – der Text ist markiert, bitte selbst kopieren.' }); }); }
+    catch (e) { zeigen({ ok: false, text: 'Kopieren geht hier nicht – der Text ist markiert, bitte selbst kopieren.' }); }
+  }
+
   // ================= Bausteine =================
   function balken(s, ziel) {
     var w = function (x) { return ziel ? Math.min(100, x / ziel * 100) : 0; };
@@ -1126,6 +1393,9 @@ button.check { cursor: pointer; }
     h += '<div class="reihe">';
     var kt = naechsteKursTermine(5);
     h += '<section class="karte" style="flex:1 1 300px" aria-labelledby="h-woche"><div class="karte-kopf"><h2 id="h-woche">Als Nächstes</h2><a href="#stundenplan">Stundenplan</a></div>';
+    anwesenheitWarnungen().forEach(function (x) {
+      h += '<a href="#stundenplan" class="zeile" style="text-decoration:none;background:color-mix(in srgb, var(--warn) 14%, var(--surface2))"><span class="t"><b style="color:var(--warn)">' + esc(x.b.titel) + ': ' + (x.a.rest < 0 ? (-x.a.rest) + '× zu oft gefehlt' : x.a.rest === 0 ? 'kein Fehltermin mehr frei' : 'nur noch 1 Fehltermin frei') + '</b><small>' + x.a.gefehlt + ' von ' + x.a.erlaubt + ' erlaubten Fehlterminen genutzt</small></span></a>';
+    });
     if (!kt.length) h += '<div class="leer">Keine Veranstaltungen in den nächsten zwei Wochen.<button type="button" class="btn klein" data-action="kurs-neu">+ Veranstaltung eintragen</button></div>';
     kt.forEach(function (x) {
       h += '<button type="button" class="zeile" data-action="kurs-edit" data-id="' + esc(x.k.id) + '"><span class="punkt" style="background:' + esc(x.k.farbe) + '"></span><span class="t"><b>' + esc(x.k.titel) + '</b><small>' + tagLabel(x.start) + ' · ' + esc(x.t.von) + '–' + esc(x.t.bis) + ' Uhr</small></span></button>';
@@ -1184,8 +1454,8 @@ button.check { cursor: pointer; }
   function studium() {
     var g = gesamtCP(), ns = notenSchnitt();
     var h = '<header class="kopf"><div><p>B. Sc. Sportwissenschaft · PO 2025 · ' + SG.gesamtCP + ' CP in ' + SG.regelstudienzeit + ' Semestern</p><h1>Dein Studium</h1></div><div class="aktionen"><div class="segment" role="group" aria-label="Ansicht">';
-    [['module', 'Module'], ['verlauf', 'Semesterplan'], ['naechstes', 'Was kann ich belegen?']].forEach(function (t) { h += '<button type="button" data-action="studium-tab" data-tab="' + t[0] + '" aria-pressed="' + (studiumTab === t[0]) + '">' + t[1] + '</button>'; });
-    h += '</div></div></header>';
+    [['module', 'Module'], ['verlauf', 'Semesterplan'], ['naechstes', 'Was kann ich belegen?'], ['anmeldung', 'Belegungsplaner']].forEach(function (t) { h += '<button type="button" data-action="studium-tab" data-tab="' + t[0] + '" aria-pressed="' + (studiumTab === t[0]) + '">' + t[1] + '</button>'; });
+    h += '</div><button type="button" class="btn" data-action="stand-kopieren" title="Kompakte Zusammenfassung für Fragen an Claude">Stand für Claude kopieren</button></div></header>';
 
     h += '<div class="bereich-grid">';
     h += '<div class="bereich-karte" style="background:var(--accent-bg)"><small>Gesamt</small><b class="num">' + fmtCP(g.bestanden) + ' <span style="font-size:14px;color:var(--muted)">/ ' + SG.gesamtCP + ' CP</span></b>' + balken(g, SG.gesamtCP) + '<small>' + Math.round(g.bestanden / SG.gesamtCP * 100) + ' % geschafft</small></div>';
@@ -1198,6 +1468,7 @@ button.check { cursor: pointer; }
 
     if (studiumTab === 'verlauf') h += semesterplan();
     else if (studiumTab === 'naechstes') h += belegbarAnsicht();
+    else if (studiumTab === 'anmeldung') h += planerAnsicht();
     else h += modulListe();
     return h;
   }
@@ -1354,7 +1625,8 @@ button.check { cursor: pointer; }
     var lv = x.lv, gr = x.p.gruende.filter(function (g) { return g.art !== 'ok'; });
     var h = '<div class="lv" style="align-items:flex-start"><span class="t"><b style="font-weight:600">' + esc(lv.titel) + '</b><small>' + esc(modulKurz(lv.modul)) + ' · ' + (lv.cpOptionen ? lv.cpOptionen.join(' oder ') : fmtCP(lv.cp)) + ' CP' + (lv.pflicht ? ' · Pflicht' : '') + '</small>';
     gr.slice(0, 3).forEach(function (g) { h += regelZeile(g); });
-    h += '</span><span class="re">' + (ok ? '<button type="button" class="btn klein" data-action="planen" data-lv="' + lv.id + '" data-sem="' + esc(ziel) + '">Einplanen</button>' : '') + '</span></div>';
+    var aufListe = state.wunschliste.some(function (w) { return w.lvId === lv.id && w.semester === ziel; });
+    h += '</span><span class="re">' + (ok ? '<button type="button" class="btn klein" data-action="planen" data-lv="' + lv.id + '" data-sem="' + esc(ziel) + '">Einplanen</button>' + (aufListe ? '<span class="chip geplant">auf Wunschliste</span>' : '<button type="button" class="btn klein" data-action="wunsch-lv" data-lv="' + lv.id + '" data-sem="' + esc(ziel) + '">Auf Wunschliste</button>') : '') + '</span></div>';
     return h;
   }
 
@@ -1370,7 +1642,7 @@ button.check { cursor: pointer; }
 
     var h = '<header class="kopf"><div><p>' + esc(semesterVon(mo)) + ' · ' + fmtCP(stunden) + ' Std. in dieser Woche</p><h1>Stundenplan</h1></div><div class="aktionen">';
     h += '<div class="wochen-nav"><button type="button" class="icon-btn" data-action="woche" data-d="-1" aria-label="Vorherige Woche">‹</button><div><b>KW ' + kw + ' · ' + datumKurz(mo) + '–' + datumKurz(fr) + '</b><small>' + (gerade ? 'gerade Woche' : 'ungerade Woche') + (wochenOffset ? ' · <button type="button" data-action="woche" data-d="0" style="background:none;border:0;color:var(--accent-hi);cursor:pointer;padding:0;font-size:12px">zu heute</button>' : '') + '</small></div><button type="button" class="icon-btn" data-action="woche" data-d="1" aria-label="Nächste Woche">›</button></div>';
-    h += '<button type="button" class="btn primaer" data-action="kurs-neu">+ Veranstaltung</button></div></header>';
+    h += '<button type="button" class="btn" data-action="einfuegen">Aus eCampus einfügen</button><button type="button" class="btn primaer" data-action="kurs-neu">+ Veranstaltung</button></div></header>';
 
     h += '<div class="reihe" style="align-items:flex-start"><section class="karte" style="flex:999 1 640px;padding:18px" aria-label="Wochenraster"><div class="raster-box"><div class="raster"><div></div>';
     for (var i = 0; i < 5; i++) { var d = new Date(mo); d.setDate(d.getDate() + i); h += '<div class="tag-kopf' + (i === heuteIdx ? ' heute' : '') + '"><b>' + TAGE[i] + '</b><small>' + datumKurz(d) + (i === heuteIdx ? ' · heute' : '') + '</small></div>'; }
@@ -1402,7 +1674,7 @@ button.check { cursor: pointer; }
     laufend.forEach(function (k) {
       h += '<div class="zeile wrap"><span class="punkt" style="background:' + esc(k.farbe) + '"></span><button type="button" data-action="kurs-edit" data-id="' + esc(k.id) + '" class="t" style="background:none;border:0;padding:0;text-align:left;cursor:pointer;color:var(--fg)"><b>' + esc(k.titel) + '</b><small>' + esc(modulKurz(k.modulId)) + ' · ' + esc(k.termine.map(function (t) { return TAGE[t.tag] + ' ' + t.von + '–' + t.bis + (t.rhythmus !== 'woechentlich' ? ' (14-tägig)' : ''); }).join(' · ') || 'ohne Termin') + '</small></button>' + (k.moodle ? '<a class="btn klein" href="' + esc(k.moodle) + '" target="_blank" rel="noopener">Moodle</a>' : '') + '<span class="num" style="font-family:var(--display);font-weight:600;white-space:nowrap">' + fmtCP(k.cp) + ' CP</span></div>';
     });
-    h += '</section><section class="karte betont" aria-labelledby="h-frei"><h2 id="h-frei">Freie Zeitfenster</h2><p class="leise">Diese Woche zwischen 8 und 18 Uhr, mindestens eine Stunde.</p>';
+    h += '</section>' + anwesenheitKarte() + '<section class="karte betont" aria-labelledby="h-frei"><h2 id="h-frei">Freie Zeitfenster</h2><p class="leise">Diese Woche zwischen 8 und 18 Uhr, mindestens eine Stunde.</p>';
     for (var f = 0; f < 5; f++) { var frei = freieFenster(belegt[f]); h += '<div style="display:flex;gap:12px;font-size:14px"><span style="width:28px;font-family:var(--display);font-weight:600;color:var(--accent)">' + TAGE[f] + '</span><span>' + (frei.length ? frei.join(' · ') : 'voll') + '</span></div>'; }
     return h + '</section></div></div>';
   }
@@ -1479,6 +1751,7 @@ button.check { cursor: pointer; }
     var h = '<header class="kopf"><div><p>' + (db ? 'Deine Daten liegen im claude.ai-Speicher und sind auf allen Geräten gleich.' : 'Deine Daten liegen nur auf diesem Gerät.') + '</p><h1>Daten &amp; Sicherung</h1></div></header>';
     var anz = state.belegungen.length + ' Veranstaltungen, ' + state.termine.length + ' Termine, ' + Object.keys(state.modulErgebnis).length + ' Modulergebnisse';
     if (!db) h += syncKarte();
+    h += '<section class="karte" aria-labelledby="h-stand"><h2 id="h-stand">Fragen an Claude</h2><p class="leise">Kopiert eine kompakte Zusammenfassung deines Studienstands. Füge sie im Projekt „studi programm“ in der Claude-App ein und stell deine Frage, z. B. „Welche Module kann ich im Sommer belegen?“. Kostet nichts extra und braucht keine KI in der App.</p><div><button type="button" class="btn" data-action="stand-kopieren">Stand für Claude kopieren</button></div></section>';
     h += '<div class="reihe" style="align-items:flex-start">';
     h += '<section class="karte" style="flex:1 1 320px" aria-labelledby="h-exp"><h2 id="h-exp">Sicherung speichern</h2><p class="leise">Enthält alles, was du eingetragen hast: ' + esc(anz) + '. Damit kannst du deine Daten auf ein anderes Gerät mitnehmen.</p><div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn primaer" data-action="export-datei">Als Datei herunterladen</button><button type="button" class="btn" data-action="export-kopie">In die Zwischenablage kopieren</button></div><p class="leise" role="status" id="export-status">' + esc(exportStatus) + '</p></section>';
     h += '<section class="karte" style="flex:1 1 320px" aria-labelledby="h-imp"><h2 id="h-imp">Sicherung laden</h2><p class="leise">Ersetzt die Daten auf diesem Gerät durch die Sicherung.</p>';
@@ -1524,6 +1797,8 @@ button.check { cursor: pointer; }
   // ================= Veranstaltungs-Dialog =================
   function konflikte(d) {
     var res = [];
+    var doppelt = d.lvId && !LV[d.lvId].mehrfach ? state.belegungen.filter(function (k) { return k.id !== d.id && k.lvId === d.lvId && k.status !== 'bestanden' && k.semester === d.semester; })[0] : null;
+    if (doppelt) return [{ warn: true, text: 'Schon eingetragen: „' + doppelt.titel + '“ (' + BELEG_STATUS[doppelt.status] + ', ' + doppelt.semester + ').' }];
     d.termine.forEach(function (t, i) {
       var a = minuten(t.von), b = minuten(t.bis);
       if (b <= a) { res.push({ warn: true, text: 'Termin ' + (i + 1) + ': Ende liegt vor dem Beginn.' }); return; }
@@ -1573,6 +1848,8 @@ button.check { cursor: pointer; }
     });
     h += '<div><button type="button" class="btn klein" data-action="termin-plus">+ Termin</button></div></div>';
     h += '<div class="feld"><span class="lbl">Kurs-Check</span><div id="konflikte" style="display:flex;flex-direction:column;gap:6px" aria-live="polite">' + konfliktHtml() + '</div></div>';
+    var anw = anwesenheit(d);
+    if (zaehltAnwesenheit(d) && d.termine.length) h += '<div class="feld"><label for="f-sitz">Sitzungen im Semester</label><input id="f-sitz" data-f="sitzungen" type="text" inputmode="numeric" autocomplete="off" value="' + (d.sitzungen || '') + '" placeholder="automatisch: ' + anw.gesamt + (anw.geschaetzt ? ' (geschätzt)' : '') + '"><small>Daraus ergeben sich die erlaubten Fehltermine (20 %). Leer lassen, dann rechnet die App aus Vorlesungszeit und Terminen.</small></div>';
     h += '<div class="feld"><label for="f-moodle">Moodle-Link (optional)</label><input id="f-moodle" data-f="moodle" type="url" inputmode="url" value="' + esc(d.moodle) + '" placeholder="https://moodle.ruhr-uni-bochum.de/course/view.php?id=…"><small>Dann bringt dich ein Tipp im Stundenplan direkt zum Kurs.</small></div>';
     h += '<div class="feld"><span class="lbl">Farbe im Stundenplan</span><div class="farbwahl">' + KURSFARBEN.map(function (f) { return '<button type="button" data-action="kursfarbe" data-c="' + f + '" aria-pressed="' + (d.farbe === f) + '" aria-label="Farbe ' + f + '" style="background:' + f + '"></button>'; }).join('') + '</div></div>';
     h += '<div class="feld"><label for="f-notiz">Kurze Notiz</label><textarea id="f-notiz" data-f="notiz" placeholder="Raum, Dozent:in, Prüfungsform …">' + esc(d.notiz) + '</textarea></div>';
@@ -1586,7 +1863,7 @@ button.check { cursor: pointer; }
     loeschBestaetigen = false;
     if (kurs) entwurf = JSON.parse(JSON.stringify(kurs));
     else {
-      entwurf = { id: neueId('k'), lvId: '', modulId: 'SONST', titel: '', cp: 0, status: 'laeuft', semester: aktSem(), farbe: freieFarbe(), termine: [{ tag: 0, von: '08:00', bis: '10:00', rhythmus: 'woechentlich' }], moodle: '', notiz: '' };
+      entwurf = { id: neueId('k'), lvId: '', modulId: 'SONST', titel: '', cp: 0, status: 'laeuft', semester: aktSem(), farbe: freieFarbe(), termine: [{ tag: 0, von: '08:00', bis: '10:00', rhythmus: 'woechentlich' }], moodle: '', notiz: '', beginn: '', sitzungen: null, fehltermine: [] };
       if (vorlage) Object.keys(vorlage).forEach(function (k) { entwurf[k] = vorlage[k]; });
     }
     document.getElementById('overlay').innerHTML = dialogHtml();
@@ -1620,7 +1897,7 @@ button.check { cursor: pointer; }
   // ================= Aktionen =================
   document.addEventListener('click', function (e) {
     var el = e.target.closest('[data-action]');
-    if (!el) { if (e.target.id === 'overlay') dialogZu(); return; }
+    if (!el) { if (e.target.id === 'overlay') overlayZu(); return; }
     var a = el.getAttribute('data-action'), id = el.getAttribute('data-id');
     if (a === 'farbe') { state.farbe = el.getAttribute('data-farbe'); speichern(); render(); }
     else if (a === 'kurs-neu') dialogOeffnen(null);
@@ -1642,6 +1919,7 @@ button.check { cursor: pointer; }
       if (!d.titel.trim()) { var ti = document.getElementById('f-titel'); ti.focus(); ti.setAttribute('aria-invalid', 'true'); ti.placeholder = 'Bitte einen Namen eintragen'; return; }
       d.titel = d.titel.trim();
       d.moodle = /^https?:\/\//i.test((d.moodle || '').trim()) ? d.moodle.trim() : '';
+      d.sitzungen = Number(d.sitzungen) > 0 ? Math.round(Number(d.sitzungen)) : null;
       var idx = state.belegungen.map(function (x) { return x.id; }).indexOf(d.id);
       if (idx >= 0) state.belegungen[idx] = d; else state.belegungen.push(d);
       dialogZu(); speichern(); render();
@@ -1654,7 +1932,46 @@ button.check { cursor: pointer; }
     else if (a === 'nachweis') { state.nachweise[id] = !state.nachweise[id]; speichern(); render(); }
     else if (a === 'planen') {
       var pl = LV[el.getAttribute('data-lv')];
-      state.belegungen.push({ id: neueId('k'), lvId: pl.id, modulId: pl.modul, titel: pl.titel, cp: pl.cp, semester: el.getAttribute('data-sem'), status: 'geplant', farbe: freieFarbe(), termine: [], moodle: '', notiz: '' });
+      state.belegungen.push({ id: neueId('k'), lvId: pl.id, modulId: pl.modul, titel: pl.titel, cp: pl.cp, semester: el.getAttribute('data-sem'), status: 'geplant', farbe: freieFarbe(), termine: [], moodle: '', notiz: '', beginn: '', sitzungen: null, fehltermine: [] });
+      speichern(); render();
+    }
+    else if (a === 'einfuegen') einfuegenOeffnen(el.getAttribute('data-ziel'));
+    else if (a === 'einfuegen-zu') einfuegenZu();
+    else if (a === 'einfuegen-lesen') { var et = document.getElementById('ein-text'); einfuegenErgebnis = ecampusLesen(et ? et.value : ''); einfuegenRender(); }
+    else if (a === 'einfuegen-eintragen' && einfuegenErgebnis) {
+      var vorl = ausErgebnis(einfuegenErgebnis); vorl.status = vorl.semester === aktSem() ? 'laeuft' : 'geplant';
+      einfuegenZu(); dialogOeffnen(null, vorl);
+    }
+    else if (a === 'einfuegen-wunsch' && einfuegenErgebnis) {
+      var wv = ausErgebnis(einfuegenErgebnis); wv.id = neueId('w'); wv.abgelehnt = false;
+      state.wunschliste.push(wv); zielSemester = wv.semester; studiumTab = 'anmeldung';
+      einfuegenZu(); speichern(); if (ansicht !== 'studium') location.hash = 'studium'; else render();
+    }
+    else if (a === 'wunsch-lv') {
+      var wl = LV[el.getAttribute('data-lv')];
+      state.wunschliste.push({ id: neueId('w'), lvId: wl.id, modulId: wl.modul, titel: wl.titel, cp: wl.cp, semester: el.getAttribute('data-sem'), termine: [], notiz: '', beginn: '', abgelehnt: false });
+      speichern(); render();
+    }
+    else if (a === 'wunsch-ablehnen') { state.wunschliste.forEach(function (w) { if (w.id === id) w.abgelehnt = !w.abgelehnt; }); speichern(); render(); }
+    else if (a === 'wunsch-weg') { state.wunschliste = state.wunschliste.filter(function (w) { return w.id !== id; }); speichern(); render(); }
+    else if (a === 'plan-uebernehmen') {
+      var ps = el.getAttribute('data-sem'), pr = planerRechnen(ps), ids = {};
+      pr.best.forEach(function (w) {
+        ids[w.id] = true;
+        state.belegungen.push({ id: neueId('k'), lvId: w.lvId, modulId: w.modulId, titel: w.titel, cp: w.cp, semester: ps, status: ps === aktSem() ? 'laeuft' : 'geplant', farbe: freieFarbe(), termine: w.termine, moodle: '', notiz: w.notiz, beginn: w.beginn, sitzungen: null, fehltermine: [] });
+      });
+      state.wunschliste = state.wunschliste.filter(function (w) { return !ids[w.id]; });
+      speichern(); render();
+    }
+    else if (a === 'stand-kopieren') standKopieren();
+    else if (a === 'stand-zu') { standOffen = false; var so = document.getElementById('overlay'); so.hidden = true; so.innerHTML = ''; }
+    else if (a === 'fehl-plus' || a === 'fehl-weg') {
+      var fb = state.belegungen.filter(function (x) { return x.id === id; })[0];
+      if (!fb) return;
+      var fd = a === 'fehl-plus' ? (document.getElementById('fd-' + id) || {}).value : el.getAttribute('data-d');
+      if (!isoOk(fd)) return;
+      if (a === 'fehl-plus') { if (fb.fehltermine.indexOf(fd) < 0) { fb.fehltermine.push(fd); fb.fehltermine.sort(); } }
+      else fb.fehltermine = fb.fehltermine.filter(function (x) { return x !== fd; });
       speichern(); render();
     }
     else if (a === 'aufgabe-toggle') { state.aufgaben.forEach(function (t) { if (t.id === id) t.erledigt = !t.erledigt; }); speichern(); render(); }
@@ -1754,7 +2071,8 @@ button.check { cursor: pointer; }
     var k = e.target.getAttribute && e.target.getAttribute('data-tf');
     if (k && terminEntwurf) terminEntwurf[k] = e.target.value;
   });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && entwurf) dialogZu(); });
+  function overlayZu() { if (entwurf) dialogZu(); else { einfuegenOffen = false; einfuegenErgebnis = null; standOffen = false; var o = document.getElementById('overlay'); o.hidden = true; o.innerHTML = ''; } }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !document.getElementById('overlay').hidden) overlayZu(); });
 
   // ================= Darstellung & Navigation =================
   var ANSICHTEN = { dashboard: dashboard, studium: studium, stundenplan: stundenplan, termine: termine, daten: datenAnsicht };

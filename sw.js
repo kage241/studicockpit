@@ -1,6 +1,6 @@
 // Service Worker: macht StudiCockpit offline nutzbar.
 // Die App-Seite wird zuerst aus dem Netz geholt (damit Updates sofort ankommen) und offline aus dem Speicher.
-const CACHE = 'studicockpit-bf9f314518';
+const CACHE = 'studicockpit-1c54a836fd';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png'];
 
 self.addEventListener('install', (event) => {
