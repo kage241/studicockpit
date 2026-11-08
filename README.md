@@ -11,6 +11,10 @@ Die App ist eine Progressive Web App ohne Server: Sie läuft im Browser, lässt 
 - `build.js` – baut daraus `index.html` und `sw.js` (`node build.js`)
 - `manifest.webmanifest`, `icons/` – App-Name und -Symbol
 
+## Sync zwischen Geräten
+
+Optional über ein kostenloses Supabase-Projekt. Einrichtung: `supabase/setup.sql` einmal im SQL Editor ausführen. Zugang über einen zufälligen Sync-Code (32 Zeichen), den das erste Gerät erzeugt; Supabase speichert nur dessen Hash. Jedes Gerät behält eine vollständige Kopie; gleichzeitige Änderungen werden zusammengeführt. Der Ablauf `.github/workflows/supabase-wachhalten.yml` fragt Supabase täglich an, damit das Projekt nicht pausiert.
+
 ## Quellen der Studiengangsdaten
 
 Modulhandbuch B. Sc. Sportwissenschaft (Stand 24.08.2026) und Prüfungsordnung 2025 (Amtliche Bekanntmachung Nr. 1707). Lücken im Modulhandbuch sind in der App als Hinweis markiert.

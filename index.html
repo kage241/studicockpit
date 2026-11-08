@@ -597,7 +597,7 @@ button.check { cursor: pointer; }
 
   // ================= Zustand =================
   // Version 2: belegungen (Veranstaltungen), modulErgebnis (Prüfung/Note je Modul), termine, aufgaben, nachweise, schwerpunkt
-  function leer() { return { version: 2, farbe: 'Lila', schwerpunkt: '', belegungen: [], modulErgebnis: {}, termine: [], aufgaben: [], nachweise: { info: false, rettungsschwimmer: false, expose: false } }; }
+  function leer() { return { version: 2, geaendert: '', farbe: 'Lila', schwerpunkt: '', belegungen: [], modulErgebnis: {}, termine: [], aufgaben: [], nachweise: { info: false, rettungsschwimmer: false, expose: false } }; }
   function termineNorm(arr) {
     return Array.isArray(arr) ? arr.map(function (t) { return { tag: Math.max(0, Math.min(4, Number(t.tag) || 0)), von: t.von || '08:00', bis: t.bis || '10:00', rhythmus: ['woechentlich', 'gerade', 'ungerade'].indexOf(t.rhythmus) >= 0 ? t.rhythmus : 'woechentlich' }; }) : [];
   }
@@ -608,6 +608,7 @@ button.check { cursor: pointer; }
     if (!s || typeof s !== 'object') return n;
     n.farbe = PALETTEN[s.farbe] ? s.farbe : 'Lila';
     if (s.version === 2 || Array.isArray(s.belegungen)) {
+      n.geaendert = typeof s.geaendert === 'string' ? s.geaendert : '';
       n.schwerpunkt = s.schwerpunkt === 'TD' || s.schwerpunkt === 'SM' ? s.schwerpunkt : '';
       n.belegungen = (s.belegungen || []).filter(function (b) { return b && b.id; }).map(function (b) {
         return { id: String(b.id), lvId: LV[b.lvId] ? b.lvId : '', modulId: modulOk(b.modulId), titel: String(b.titel || 'Veranstaltung'), cp: Number(b.cp) || 0, semester: SEMESTER.indexOf(b.semester) >= 0 ? b.semester : SEMESTER[0], status: BELEG_STATUS[b.status] ? b.status : 'geplant', farbe: farbeOk(b.farbe), termine: termineNorm(b.termine), moodle: /^https?:\/\//i.test(b.moodle || '') ? b.moodle : '', notiz: String(b.notiz || '') };
@@ -651,10 +652,144 @@ button.check { cursor: pointer; }
     el.className = 'sync' + (art ? ' ' + art : '');
     el.querySelector('span').textContent = text;
   }
+  // ================= Sync über Supabase (nur in der installierten App) =================
+  // Offline-first: Jedes Gerät behält seine vollständige Kopie. Supabase gleicht nur ab.
+  // Zugang über einen zufälligen Sync-Code; der Server speichert nur dessen Hash (siehe supabase/setup.sql).
+  var SUPA = { url: 'https://qmluxgojumdnuidvkdkk.supabase.co', key: 'sb_publishable_HUlZIV-OjDsprSdmGIxAxQ_NSYh57iT' };
+  var SYNC_KEY = 'studicockpit-sync';
+  var sync = null, syncLaeuft = false, syncNochmal = false, syncTimer = null, syncHinweis = '', syncFehler = '', codeVorschau = null, codeSichtbar = false, syncBeendenFrage = false;
+  try { var sj = JSON.parse(localStorage.getItem(SYNC_KEY) || 'null'); if (sj && typeof sj.code === 'string' && sj.code.length >= 24) sync = sj; } catch (e) { /* kein Sync */ }
+  function syncMerken() { try { if (sync) localStorage.setItem(SYNC_KEY, JSON.stringify(sync)); else localStorage.removeItem(SYNC_KEY); } catch (e) { /* egal */ } }
+  function rpc(name, body) {
+    return fetch(SUPA.url + '/rest/v1/rpc/' + name, { method: 'POST', headers: { apikey: SUPA.key, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.text().then(function (t) { var j = null; try { j = t ? JSON.parse(t) : null; } catch (e) { j = t; } if (!r.ok) throw { status: r.status, text: typeof j === 'object' && j && j.message ? j.message : String(t) }; return j; }); });
+  }
+  var CODE_ZEICHEN = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  function neuerCode() { var a = new Uint8Array(32); crypto.getRandomValues(a); var s = ''; for (var i = 0; i < 32; i++) s += CODE_ZEICHEN[a[i] % 32]; return s; }
+  function codeNorm(c) { return String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+  function codeAnzeige(c) { return c.match(/.{1,4}/g).join('-'); }
+  function zeitKurz(iso) { if (!iso) return ''; var d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); }
+  function syncFehlerText(e) {
+    var t = e && e.text ? String(e.text) : '';
+    if (/nur_ein_code/.test(t)) return 'In deinem Supabase-Projekt gibt es schon einen Sync-Code. Gib auf diesem Gerät den Code vom anderen Gerät ein.';
+    if (/Could not find the function|PGRST202|404/.test(t) || (e && e.status === 404)) return 'Supabase ist noch nicht eingerichtet: Das SQL aus supabase/setup.sql wurde noch nicht ausgeführt.';
+    if (e && (e.status === 401 || e.status === 403)) return 'Supabase lehnt den Zugriff ab. Bitte Claude Bescheid geben.';
+    if (e && e.status >= 500) return 'Supabase antwortet gerade nicht. Vielleicht ist das Projekt pausiert – im Supabase-Dashboard auf „Resume project“ tippen.';
+    return 'Keine Verbindung zu Supabase. Deine Änderungen bleiben auf dem Gerät und werden später abgeglichen.';
+  }
+  function syncStatusZeigen() {
+    if (!sync) { syncAnzeige('Auf diesem Gerät gespeichert', 'on'); return; }
+    if (syncFehler) { syncAnzeige(sync.dirty ? 'Nicht abgeglichen – wird nachgeholt' : 'Sync gerade nicht erreichbar', 'warn'); return; }
+    if (sync.dirty || syncLaeuft) { syncAnzeige('Gleiche ab …', ''); return; }
+    syncAnzeige('Synchronisiert · ' + (sync.letzter ? zeitKurz(sync.letzter).split(' ')[1] : 'jetzt'), 'on');
+  }
+  function stateUebernehmen(daten) {
+    state = normalisieren(daten); delete state._migriert;
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* egal */ }
+    basisSetzen(state);
+  }
+  // Basis = Stand beim letzten erfolgreichen Abgleich; damit lassen sich Änderungen zweier Geräte zusammenführen
+  var BASIS_KEY = 'studicockpit-sync-basis';
+  function basisSetzen(s) { try { localStorage.setItem(BASIS_KEY, JSON.stringify(s)); } catch (e) { /* egal */ } }
+  function basisLaden() { try { var b = localStorage.getItem(BASIS_KEY); return b ? normalisieren(JSON.parse(b)) : null; } catch (e) { return null; } }
+  function gleich(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+  function wert3(b, l, r, lNeuer) { if (gleich(l, r)) return l; if (gleich(l, b)) return r; if (gleich(r, b)) return l; return lNeuer ? l : r; }
+  function liste3(b, l, r, lNeuer) {
+    var nachId = function (arr) { var m = {}; (arr || []).forEach(function (x) { m[x.id] = x; }); return m; };
+    var B = nachId(b), L = nachId(l), R = nachId(r), out = [], gesehen = {};
+    (r || []).concat(l || []).forEach(function (x) {
+      var id = x.id; if (gesehen[id]) return; gesehen[id] = true;
+      var bi = B[id], li = L[id], ri = R[id];
+      if (li && ri) out.push(wert3(bi, li, ri, lNeuer));
+      else if (li) { if (!bi || !gleich(li, bi)) out.push(li); }
+      else if (ri) { if (!bi || !gleich(ri, bi)) out.push(ri); }
+    });
+    return out;
+  }
+  function karte3(b, l, r, lNeuer) {
+    var out = {}, keys = {};
+    [b, l, r].forEach(function (o) { Object.keys(o || {}).forEach(function (k) { keys[k] = true; }); });
+    Object.keys(keys).forEach(function (k) {
+      var bi = (b || {})[k], li = (l || {})[k], ri = (r || {})[k];
+      if (li !== undefined && ri !== undefined) out[k] = wert3(bi, li, ri, lNeuer);
+      else if (li !== undefined) { if (bi === undefined || !gleich(li, bi)) out[k] = li; }
+      else if (ri !== undefined) { if (bi === undefined || !gleich(ri, bi)) out[k] = ri; }
+    });
+    return out;
+  }
+  function zusammenfuehren(b, l, r) {
+    var lNeuer = String(l.geaendert || '') > String(r.geaendert || '');
+    var m = leer();
+    m.farbe = wert3(b.farbe, l.farbe, r.farbe, lNeuer);
+    m.schwerpunkt = wert3(b.schwerpunkt, l.schwerpunkt, r.schwerpunkt, lNeuer);
+    ['belegungen', 'termine', 'aufgaben'].forEach(function (k) { m[k] = liste3(b[k], l[k], r[k], lNeuer); });
+    m.modulErgebnis = karte3(b.modulErgebnis, l.modulErgebnis, r.modulErgebnis, lNeuer);
+    m.nachweise = karte3(b.nachweise, l.nachweise, r.nachweise, lNeuer);
+    m.geaendert = new Date().toISOString();
+    return normalisieren(m);
+  }
+  function syncPush() {
+    if (!sync) return;
+    if (syncLaeuft) { syncNochmal = true; return; }
+    syncLaeuft = true; syncStatusZeigen();
+    var gesendet = JSON.parse(JSON.stringify(state));
+    rpc('sync_put', { code: sync.code, new_data: gesendet, base_version: sync.version || null }).then(function (res) {
+      syncFehler = '';
+      if (res && res.ok) {
+        sync.version = res.version; sync.letzter = new Date().toISOString();
+        basisSetzen(gesendet);
+        if (state.geaendert === gesendet.geaendert) sync.dirty = false; else syncNochmal = true;
+        syncMerken();
+      } else if (res && res.conflict) { syncNochmal = false; syncLaeuft = false; return syncPull(); }
+    }).catch(function (e) { syncFehler = syncFehlerText(e); }).then(function () {
+      syncLaeuft = false; syncStatusZeigen();
+      if (syncNochmal) { syncNochmal = false; syncPush(); }
+      if (ansicht === 'daten') render();
+    });
+  }
+  function syncPull() {
+    if (!sync || syncLaeuft) return Promise.resolve();
+    syncLaeuft = true; syncStatusZeigen();
+    return rpc('sync_get', { code: sync.code }).then(function (res) {
+      syncFehler = ''; syncLaeuft = false;
+      if (!res) { if (sync.version) { syncFehler = 'Dein Sync-Code ist in Supabase nicht mehr vorhanden. Richte den Sync unter „Daten & Sicherung“ neu ein.'; } else { sync.dirty = true; syncPush(); } return; }
+      if (res.version === sync.version) { if (sync.dirty) syncPush(); else { sync.letzter = new Date().toISOString(); syncMerken(); } return; }
+      if (!sync.dirty) {
+        stateUebernehmen(res.data); sync.version = res.version; sync.dirty = false; sync.letzter = new Date().toISOString(); syncMerken();
+        if (!entwurf && !terminEntwurf) render();
+        return;
+      }
+      // Beide Seiten haben sich geändert: zusammenführen und das Ergebnis hochladen
+      var remote = normalisieren(res.data); delete remote._migriert;
+      var basis = basisLaden();
+      var neu = basis ? zusammenfuehren(basis, state, remote) : (String(remote.geaendert || '') >= String(state.geaendert || '') ? remote : state);
+      syncHinweis = basis ? 'Änderungen von zwei Geräten wurden zusammengeführt.' : 'Auf einem anderen Gerät gab es neuere Änderungen.';
+      basisSetzen(remote);
+      state = neu; try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* egal */ }
+      sync.version = res.version; syncMerken();
+      var vergleich = JSON.parse(JSON.stringify(neu)); vergleich.geaendert = remote.geaendert;
+      if (gleich(vergleich, remote)) { state = remote; sync.dirty = false; syncMerken(); } else { sync.dirty = true; syncMerken(); syncPush(); }
+      if (!entwurf && !terminEntwurf) render();
+    }).catch(function (e) { syncLaeuft = false; syncFehler = syncFehlerText(e); }).then(function () { syncStatusZeigen(); if (ansicht === 'daten') render(); });
+  }
+  function syncStarten() {
+    if (!sync || db) return;
+    syncPull();
+    clearInterval(syncTimer);
+    syncTimer = setInterval(function () { if (document.visibilityState === 'visible') syncPull(); }, 60000);
+  }
+  window.addEventListener('online', function () { if (sync && !db) syncPull(); });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && sync && !db) syncPull(); });
+
   var speicherTimer = null;
   function speichern() {
+    state.geaendert = new Date().toISOString();
     try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* egal */ }
-    if (!db) { syncAnzeige('Auf diesem Gerät gespeichert', 'on'); return; }
+    if (!db) {
+      if (sync) { sync.dirty = true; syncMerken(); syncStatusZeigen(); clearTimeout(speicherTimer); speicherTimer = setTimeout(syncPush, 800); }
+      else syncAnzeige('Auf diesem Gerät gespeichert', 'on');
+      return;
+    }
     ausstehend = true;
     syncAnzeige('Speichere …', '');
     clearTimeout(speicherTimer);
@@ -668,9 +803,10 @@ button.check { cursor: pointer; }
     }, 350);
   }
   function lokalModus() {
-    syncAnzeige('Auf diesem Gerät gespeichert', 'on');
+    syncStatusZeigen();
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* egal */ }
     ladeFertig = true; render();
+    syncStarten();
   }
   function verbinden() {
     if (!window.claude || typeof window.claude.use !== 'function') { lokalModus(); return; }
@@ -1342,6 +1478,7 @@ button.check { cursor: pointer; }
   function datenAnsicht() {
     var h = '<header class="kopf"><div><p>' + (db ? 'Deine Daten liegen im claude.ai-Speicher und sind auf allen Geräten gleich.' : 'Deine Daten liegen nur auf diesem Gerät.') + '</p><h1>Daten &amp; Sicherung</h1></div></header>';
     var anz = state.belegungen.length + ' Veranstaltungen, ' + state.termine.length + ' Termine, ' + Object.keys(state.modulErgebnis).length + ' Modulergebnisse';
+    if (!db) h += syncKarte();
     h += '<div class="reihe" style="align-items:flex-start">';
     h += '<section class="karte" style="flex:1 1 320px" aria-labelledby="h-exp"><h2 id="h-exp">Sicherung speichern</h2><p class="leise">Enthält alles, was du eingetragen hast: ' + esc(anz) + '. Damit kannst du deine Daten auf ein anderes Gerät mitnehmen.</p><div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn primaer" data-action="export-datei">Als Datei herunterladen</button><button type="button" class="btn" data-action="export-kopie">In die Zwischenablage kopieren</button></div><p class="leise" role="status" id="export-status">' + esc(exportStatus) + '</p></section>';
     h += '<section class="karte" style="flex:1 1 320px" aria-labelledby="h-imp"><h2 id="h-imp">Sicherung laden</h2><p class="leise">Ersetzt die Daten auf diesem Gerät durch die Sicherung.</p>';
@@ -1354,6 +1491,25 @@ button.check { cursor: pointer; }
     }
     h += '</section></div>';
     return h;
+  }
+  function syncKarte() {
+    var h = '<section class="karte betont" aria-labelledby="h-sync"><div class="karte-kopf"><h2 id="h-sync">Sync zwischen deinen Geräten</h2>' + (sync ? chip(syncFehler ? 'warn' : 'abgeschlossen', syncFehler ? 'gestört' : 'aktiv') : chip('offen', 'aus')) + '</div>';
+    if (syncHinweis) h += '<div class="konflikt warn" role="status"><span aria-hidden="true">!</span><span>' + esc(syncHinweis) + '</span></div>';
+    if (syncFehler) h += '<div class="konflikt warn" role="alert"><span aria-hidden="true">⚠</span><span>' + esc(syncFehler) + '</span></div>';
+    if (sync) {
+      h += '<p class="leise">Dieses Gerät gleicht automatisch mit deinen anderen Geräten ab, beim Öffnen und jede Minute. Ohne Internet arbeitest du einfach weiter, abgeglichen wird später.' + (sync.letzter ? ' Zuletzt abgeglichen: ' + esc(zeitKurz(sync.letzter)) + '.' : '') + '</p>';
+      h += '<div class="feld"><span class="lbl">Dein Sync-Code (für weitere Geräte)</span><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><code style="font-size:15px;letter-spacing:0.5px;padding:10px 12px;border-radius:12px;background:var(--surface2);overflow-wrap:anywhere">' + (codeSichtbar ? esc(codeAnzeige(sync.code)) : '•••• •••• •••• ••••') + '</code><button type="button" class="btn klein" data-action="sync-zeigen">' + (codeSichtbar ? 'Verbergen' : 'Anzeigen') + '</button><button type="button" class="btn klein" data-action="sync-kopieren">Kopieren</button></div><small>Wie ein Passwort behandeln: Wer den Code hat, kann deine Studiendaten sehen.</small></div>';
+      h += '<div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn" data-action="sync-jetzt">Jetzt abgleichen</button>' + (syncBeendenFrage ? '<button type="button" class="btn gefahr" data-action="sync-beenden-ja">Ja, Sync hier beenden</button><button type="button" class="btn klein" data-action="sync-beenden-nein">Abbrechen</button>' : '<button type="button" class="btn" data-action="sync-beenden">Sync auf diesem Gerät beenden</button>') + '</div>';
+      return h + '</section>';
+    }
+    h += '<p class="leise">Damit Handy und Tablet dieselben Daten haben. Kostenlos über dein Supabase-Projekt. Jedes Gerät behält trotzdem seine eigene Kopie.</p>';
+    h += '<div class="reihe" style="gap:14px"><div style="flex:1 1 260px;display:flex;flex-direction:column;gap:8px"><b style="font-size:14px">Erstes Gerät</b><p class="leise">Erstellt einen Sync-Code und lädt die Daten von diesem Gerät hoch.</p><div><button type="button" class="btn primaer" data-action="sync-neu">Sync-Code erstellen</button></div></div>';
+    h += '<div style="flex:1 1 260px;display:flex;flex-direction:column;gap:8px"><b style="font-size:14px">Weiteres Gerät</b><div class="feld"><label for="sync-code">Sync-Code vom ersten Gerät</label><input id="sync-code" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH-…"></div><div><button type="button" class="btn" data-action="sync-pruefen">Code prüfen</button></div></div></div>';
+    if (codeVorschau) {
+      var v = codeVorschau.state;
+      h += '<div style="padding:14px;border-radius:14px;background:var(--accent-bg);display:flex;flex-direction:column;gap:10px"><b>Code gefunden</b><span class="leise" style="color:var(--soft)">Im Sync liegen ' + v.belegungen.length + ' Veranstaltungen und ' + v.termine.length + ' Termine' + (codeVorschau.updated ? ', zuletzt geändert am ' + esc(zeitKurz(codeVorschau.updated)) : '') + '. Die Daten auf diesem Gerät (' + state.belegungen.length + ' Veranstaltungen) werden dadurch ersetzt.</span><div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn primaer" data-action="sync-uebernehmen">Sync-Daten übernehmen</button><button type="button" class="btn" data-action="sync-abbruch">Abbrechen</button></div></div>';
+    }
+    return h + '</section>';
   }
   function importLesen(text) {
     importFehler = ''; importVorschau = null;
@@ -1535,6 +1691,40 @@ button.check { cursor: pointer; }
       var fallback = function () { exportStatus = 'Kopieren wurde blockiert. Der Text steht jetzt im Feld „Sicherung hier einfügen“ – markieren und kopieren.'; render(); var ta = document.getElementById('import-text'); if (ta) { ta.value = txt; ta.select(); } };
       try { navigator.clipboard.writeText(txt).then(function () { exportStatus = 'Kopiert. Füge den Text auf dem anderen Gerät unter „Sicherung laden“ ein.'; render(); }, fallback); } catch (x) { fallback(); }
     }
+    else if (a === 'sync-neu') {
+      var code = neuerCode(); syncFehler = ''; syncHinweis = '';
+      if (!state.geaendert) state.geaendert = new Date().toISOString();
+      el.disabled = true; el.textContent = 'Richte ein …';
+      rpc('sync_put', { code: code, new_data: JSON.parse(JSON.stringify(state)), base_version: null }).then(function (res) {
+        if (!res || !res.ok) throw { text: 'nur_ein_code' };
+        sync = { code: code, version: res.version, dirty: false, letzter: new Date().toISOString() }; codeSichtbar = true; syncMerken(); basisSetzen(state); syncStarten();
+      }).catch(function (e2) { syncFehler = syncFehlerText(e2); }).then(function () { syncStatusZeigen(); render(); });
+    }
+    else if (a === 'sync-pruefen') {
+      var eing = codeNorm((document.getElementById('sync-code') || {}).value);
+      syncFehler = ''; codeVorschau = null;
+      if (eing.length < 24) { syncFehler = 'Der Code ist zu kurz. Er hat 32 Zeichen, die Striche kannst du weglassen.'; render(); return; }
+      rpc('sync_get', { code: eing }).then(function (res) {
+        if (!res) { syncFehler = 'Diesen Code gibt es nicht. Prüf ihn bitte noch einmal auf dem ersten Gerät.'; return; }
+        var vs = normalisieren(res.data); delete vs._migriert;
+        codeVorschau = { code: eing, version: res.version, state: vs, roh: res.data, updated: res.updated_at };
+      }).catch(function (e2) { syncFehler = syncFehlerText(e2); }).then(render);
+    }
+    else if (a === 'sync-uebernehmen' && codeVorschau) {
+      stateUebernehmen(codeVorschau.roh);
+      sync = { code: codeVorschau.code, version: codeVorschau.version, dirty: false, letzter: new Date().toISOString() };
+      codeVorschau = null; syncMerken(); syncStarten(); syncStatusZeigen(); location.hash = 'dashboard'; render();
+    }
+    else if (a === 'sync-abbruch') { codeVorschau = null; render(); }
+    else if (a === 'sync-jetzt') { syncHinweis = ''; if (sync && sync.dirty) syncPush(); else syncPull(); }
+    else if (a === 'sync-zeigen') { codeSichtbar = !codeSichtbar; render(); }
+    else if (a === 'sync-kopieren' && sync) {
+      var ct = codeAnzeige(sync.code);
+      try { navigator.clipboard.writeText(ct).then(function () { syncHinweis = 'Code kopiert.'; render(); }, function () { codeSichtbar = true; syncHinweis = 'Kopieren wurde blockiert – der Code steht oben, bitte abschreiben.'; render(); }); } catch (x) { codeSichtbar = true; render(); }
+    }
+    else if (a === 'sync-beenden') { syncBeendenFrage = true; render(); }
+    else if (a === 'sync-beenden-nein') { syncBeendenFrage = false; render(); }
+    else if (a === 'sync-beenden-ja') { sync = null; syncBeendenFrage = false; syncFehler = ''; syncHinweis = ''; clearInterval(syncTimer); syncMerken(); syncStatusZeigen(); render(); }
     else if (a === 'import-pruefen') { var it = document.getElementById('import-text'); importLesen(it ? it.value : ''); }
     else if (a === 'import-nein') { importVorschau = null; render(); }
     else if (a === 'import-ja') { state = importVorschau; importVorschau = null; exportStatus = ''; speichern(); location.hash = 'dashboard'; render(); }
@@ -1573,11 +1763,12 @@ button.check { cursor: pointer; }
     var main = document.getElementById('main'), scroll = window.scrollY;
     var ae = document.activeElement, aktiv = ae && ae.id, auswahl = null;
     try { if (ae && typeof ae.selectionStart === 'number') auswahl = [ae.selectionStart, ae.selectionEnd]; } catch (x) { /* kein Textfeld */ }
-    var alt = document.getElementById('aufgabe-text'), altWert = alt ? alt.value : '';
+    var behalten = {};
+    ['aufgabe-text', 'sync-code', 'import-text'].forEach(function (fid) { var x = document.getElementById(fid); if (x && x.value) behalten[fid] = x.value; });
     var html = (ANSICHTEN[ansicht] || dashboard)();
     if (!ladeFertig && !state.belegungen.length) html += '<p class="leise">Lade deine Daten …</p>';
     main.innerHTML = html;
-    var neu = document.getElementById('aufgabe-text'); if (neu && altWert) neu.value = altWert;
+    Object.keys(behalten).forEach(function (fid) { var x = document.getElementById(fid); if (x && !x.value) x.value = behalten[fid]; });
     document.querySelectorAll('.nav a[data-view]').forEach(function (a) { if (a.getAttribute('data-view') === ansicht) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     if (aktiv && !entwurf) { var f = document.getElementById(aktiv); if (f) { f.focus({ preventScroll: true }); if (auswahl && f.setSelectionRange) { try { f.setSelectionRange(auswahl[0], auswahl[1]); } catch (x) { /* egal */ } } } }
     window.scrollTo(0, scroll);
