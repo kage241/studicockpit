@@ -1,0 +1,1586 @@
+<title>StudiCockpit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: Seitenleiste + Arbeitsfläche aus Karten; dunkel als bewusste Entscheidung, Akzent per Farbwahl */
+:root {
+  color-scheme: dark;
+  --bg: #0E1014;
+  --surface: #161920;
+  --surface2: #1E2129;
+  --surface3: #23272F;
+  --line: #2A2E37;
+  --fg: #ECEEF2;
+  --soft: #B4BCC9;
+  --muted: #9AA3B2;
+  --accent: #C38BFF;
+  --accent-hi: #DEC4FF;
+  --accent-line: #432E66;
+  --accent-bg: #1F1733;
+  --accent2: #FF8FC7;
+  --warn: #FFB86B;
+  --ok: #8FE3B0;
+  --bad: #FF9E8F;
+  --display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+  --body: Inter, 'Segoe UI', system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--fg); }
+body { font-family: var(--body); font-size: 15px; line-height: 1.45; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--accent-hi); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.3px; }
+.num { font-variant-numeric: tabular-nums; }
+.sr { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.app { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1440px; margin: 0 auto; }
+.nav { flex: 1 1 200px; max-width: 240px; background: var(--surface); border-radius: 20px; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); }
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 16px; }
+.logo { width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: var(--bg); display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 17px; }
+.brand span { font-family: var(--display); font-weight: 700; font-size: 18px; }
+.nav a { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; color: var(--soft); text-decoration: none; white-space: nowrap; }
+.nav a[aria-current="page"] { background: var(--surface3); color: var(--fg); font-weight: 600; }
+.nav a[aria-current="page"] svg { stroke: var(--accent); }
+.sync { margin-top: 12px; padding: 10px 12px; font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.sync i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: 0 0 auto; }
+.sync.on i { background: var(--ok); }
+.sync.warn i { background: var(--warn); }
+main { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+
+.kopf { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.kopf p { margin: 0 0 6px; color: var(--muted); font-size: 14px; }
+.kopf h1 { font-size: clamp(26px, 3.2vw, 34px); }
+.aktionen { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.farben { display: flex; gap: 2px; background: var(--surface); border-radius: 14px; padding: 2px 6px; }
+.farben button { width: 40px; height: 40px; border: 0; background: transparent; border-radius: 50%; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.farben span { width: 22px; height: 22px; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px transparent; }
+.farben button[aria-pressed="true"] span { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--fg); }
+
+.btn { min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line); background: transparent; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: var(--fg); text-decoration: none; }
+.btn:hover { background: var(--surface2); }
+.btn.primaer { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.btn.primaer:hover { filter: brightness(1.08); background: var(--accent); }
+.btn.klein { min-height: 36px; padding: 0 12px; font-size: 13px; }
+.btn.gefahr { border-color: #6B2A2A; color: #FFB4A8; }
+.icon-btn { width: 44px; height: 44px; border-radius: 12px; border: 0; background: transparent; cursor: pointer; font-size: 20px; color: var(--fg); }
+.icon-btn:hover { background: var(--surface2); }
+.segment { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--surface); border-radius: 14px; padding: 4px; }
+.segment button { min-height: 40px; padding: 0 14px; border-radius: 10px; border: 0; background: transparent; cursor: pointer; color: var(--soft); font-weight: 500; }
+.segment button[aria-pressed="true"] { background: var(--surface3); color: var(--fg); font-weight: 600; }
+.filter { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter button { min-height: 36px; padding: 0 12px; border-radius: 18px; border: 1px solid var(--line); background: transparent; cursor: pointer; font-size: 13px; color: var(--soft); }
+.filter button[aria-pressed="true"] { border-color: var(--accent); color: var(--fg); background: var(--accent-bg); }
+
+.reihe { display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch; }
+.karte { background: var(--surface); border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.karte.betont { border: 1px solid var(--accent-line); }
+.karte h2 { font-size: 18px; }
+.karte-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.karte-kopf a { font-size: 13px; }
+.eyebrow { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); }
+.leise { color: var(--muted); font-size: 13px; margin: 0; }
+.balken { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; display: flex; }
+.balken > i { display: block; height: 100%; }
+.balken .b { background: var(--accent); }
+.balken .l { background: var(--accent2); }
+.balken .g { background: var(--accent-line); }
+.legende { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); }
+.legende span { display: inline-flex; align-items: center; gap: 6px; }
+.legende i { width: 10px; height: 10px; border-radius: 3px; }
+.zeile { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--surface2); border: 0; text-align: left; width: 100%; color: var(--fg); }
+button.zeile { cursor: pointer; }
+.zeile .t { flex: 1; min-width: 0; }
+.zeile .t b { display: block; font-weight: 600; font-size: 14px; }
+.zeile .t small { display: block; font-size: 12px; color: var(--muted); }
+.zeile.wrap { flex-wrap: wrap; }
+.chip { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; display: inline-flex; align-items: center; }
+.chip.laeuft, .chip.inBearbeitung { background: color-mix(in srgb, var(--accent2) 20%, transparent); color: var(--accent2); }
+.chip.bestanden, .chip.abgeschlossen { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent-hi); }
+.chip.geplant { border: 1px solid var(--accent-line); color: var(--soft); }
+.chip.offen { border: 1px solid var(--line); color: var(--muted); }
+.chip.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.punkt { width: 12px; height: 12px; border-radius: 4px; flex: 0 0 auto; }
+.check { display: flex; gap: 10px; align-items: center; min-height: 36px; font-size: 14px; background: none; border: 0; padding: 0; text-align: left; color: var(--fg); }
+button.check { cursor: pointer; }
+.check i { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #59606C; flex: 0 0 auto; display: grid; place-items: center; font-style: normal; font-size: 12px; color: var(--bg); }
+.check.ja i { border-color: var(--accent); background: var(--accent); }
+.check.halb i { border-color: var(--accent2); background: var(--accent-bg); }
+.check small { color: var(--muted); font-size: 12px; }
+.leer { padding: 18px; border: 1px dashed var(--line); border-radius: 14px; color: var(--muted); font-size: 14px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.regel { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.4; }
+.regel .s { flex: 0 0 auto; width: 16px; text-align: center; font-weight: 700; }
+.regel.ok .s { color: var(--ok); }
+.regel.fehlt .s { color: var(--bad); }
+.regel.hinweis .s { color: var(--warn); }
+.regel span:last-child { color: var(--soft); }
+
+/* Dashboard */
+.hero { display: flex; flex-wrap: wrap; gap: 28px; align-items: center; }
+.hero svg { flex: 0 0 auto; max-width: 100%; height: auto; }
+.hero-text { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.stat { background: var(--surface2); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat b { font-family: var(--display); font-size: 24px; font-weight: 700; line-height: 1.1; }
+.stat span { font-size: 12px; color: var(--muted); }
+.bereich-kopf { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; margin-bottom: 6px; }
+.bereich-kopf span:last-child { color: var(--muted); white-space: nowrap; }
+.modulzaehler { display: flex; flex-wrap: wrap; gap: 8px; }
+.modulzaehler span { font-size: 13px; padding: 6px 10px; border-radius: 10px; background: var(--surface2); color: var(--soft); }
+.modulzaehler b { color: var(--fg); font-family: var(--display); }
+.links { display: flex; flex-wrap: wrap; gap: 8px; }
+.links a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 20px; background: var(--surface); color: var(--fg); text-decoration: none; font-size: 13px; font-weight: 500; }
+
+/* Stundenplan */
+.wochen-nav { display: flex; align-items: center; gap: 2px; background: var(--surface); border-radius: 14px; padding: 2px; }
+.wochen-nav div { min-width: 170px; text-align: center; }
+.wochen-nav b { display: block; font-size: 14px; }
+.wochen-nav small { font-size: 12px; color: var(--muted); }
+.raster-box { overflow-x: auto; }
+.raster { min-width: 640px; display: grid; grid-template-columns: 52px repeat(5, minmax(100px, 1fr)); gap: 0 8px; }
+.tag-kopf { text-align: center; padding: 8px 0; border-radius: 12px; margin-bottom: 8px; }
+.tag-kopf b { display: block; font-family: var(--display); font-size: 15px; }
+.tag-kopf small { color: var(--muted); font-size: 12px; }
+.tag-kopf.heute { background: var(--accent-bg); }
+.tag-kopf.heute b { color: var(--accent); }
+.zeiten { position: relative; }
+.zeiten span { position: absolute; right: 6px; font-size: 12px; color: var(--muted); transform: translateY(-8px); }
+.spalte { position: relative; border-radius: 12px; background-color: #13151A; background-image: repeating-linear-gradient(to bottom, var(--line) 0, var(--line) 1px, transparent 1px, transparent 56px); }
+.spalte.heute { background-color: #1A1626; }
+.block { position: absolute; left: 3px; right: 3px; border-radius: 12px; padding: 7px 9px; overflow: hidden; cursor: pointer; text-align: left; border: 1px solid; display: flex; flex-direction: column; gap: 2px; color: var(--fg); }
+.block b { font-size: 13px; line-height: 1.25; }
+.block small { font-size: 11px; color: var(--soft); }
+.block .zeit { font-size: 12px; font-weight: 600; }
+.block.geplant { border-style: dashed; opacity: 0.8; }
+.jetzt-linie { position: absolute; left: 0; right: 0; height: 2px; background: var(--accent2); z-index: 2; }
+
+/* Studium */
+.bereich-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.bereich-karte { background: var(--surface); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.bereich-karte b { font-family: var(--display); font-size: 22px; }
+.bereich-karte small { color: var(--muted); font-size: 12px; }
+.sem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.sem { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.sem.jetzt { border-color: var(--accent); background: var(--accent-bg); }
+.sem-kopf { display: flex; justify-content: space-between; gap: 6px; align-items: center; font-weight: 600; font-size: 14px; }
+.sem .cp { font-family: var(--display); font-size: 26px; font-weight: 700; }
+.sem ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.sem li { font-size: 12px; color: var(--soft); display: flex; gap: 6px; align-items: baseline; }
+.sem li i { width: 8px; height: 8px; border-radius: 3px; flex: 0 0 auto; transform: translateY(-1px); }
+.gruppe { display: flex; flex-direction: column; gap: 4px; }
+.gruppe-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 4px 4px 8px; }
+.gruppe-kopf h2 { font-size: 18px; }
+.modul { border-radius: 14px; background: var(--surface); }
+.modul.offen-detail { background: var(--surface); outline: 1px solid var(--accent-line); }
+.modul > button { width: 100%; display: flex; align-items: center; gap: 14px; min-height: 60px; background: none; border: 0; padding: 10px 14px; cursor: pointer; text-align: left; color: var(--fg); }
+.modul .nr { width: 42px; font-family: var(--display); font-weight: 700; color: var(--muted); flex: 0 0 auto; font-size: 15px; }
+.modul .mitte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.modul .mitte .oben { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; align-items: baseline; }
+.modul .mitte .oben b { font-weight: 600; }
+.modul .mitte .oben span { color: var(--muted); white-space: nowrap; font-size: 13px; }
+.modul-detail { padding: 2px 14px 18px 70px; display: flex; flex-direction: column; gap: 14px; }
+@media (max-width: 600px) { .modul-detail { padding-left: 14px; } }
+.fakten { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.fakt { background: var(--surface2); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.fakt span { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+.fakt b { display: block; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+.unter h3 { font-size: 14px; font-family: var(--body); font-weight: 600; margin-bottom: 8px; color: var(--soft); }
+.lv { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: var(--surface2); }
+.lv .t { flex: 1 1 220px; min-width: 0; font-size: 14px; }
+.lv .t small { display: block; color: var(--muted); font-size: 12px; }
+.lv .re { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.pruef { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+
+/* Formulare & Dialog */
+.overlay { position: fixed; inset: 0; background: rgba(5, 6, 9, 0.72); z-index: 20; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: calc(env(safe-area-inset-top, 0px) + 24px) max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
+.dialog { width: 100%; max-width: 640px; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.dialog h2 { font-size: 22px; }
+.feld { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.feld label, .feld .lbl { font-size: 13px; color: var(--soft); font-weight: 500; }
+.feld input, .feld select, .feld textarea { min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface2); padding: 0 12px; width: 100%; }
+.feld textarea { padding: 10px 12px; min-height: 70px; resize: vertical; }
+.feld small { color: var(--muted); font-size: 12px; }
+.felder { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.termin { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr 44px; gap: 8px; align-items: end; }
+@media (max-width: 560px) { .termin { grid-template-columns: 1fr 1fr 1fr; } }
+.konflikt { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
+.konflikt.warn { color: var(--warn); }
+.konflikt.ok { color: var(--ok); }
+.farbwahl { display: flex; gap: 6px; flex-wrap: wrap; }
+.farbwahl button { width: 36px; height: 36px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+.farbwahl button[aria-pressed="true"] { border-color: var(--fg); }
+.fuss { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+
+/* Termine */
+.termin-zeile { display: flex; gap: 14px; align-items: center; padding: 12px 14px; border-radius: 14px; background: var(--surface2); flex-wrap: wrap; }
+.datum-box { width: 56px; height: 56px; border-radius: 14px; background: var(--accent-bg); color: var(--accent-hi); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; flex: 0 0 auto; }
+.datum-box b { font-family: var(--display); font-size: 20px; }
+.datum-box small { font-size: 11px; text-transform: uppercase; }
+.termin-zeile .t { flex: 1 1 200px; min-width: 0; }
+.termin-zeile .t b { display: block; font-size: 15px; }
+.termin-zeile .t small { display: block; color: var(--muted); font-size: 12px; }
+.termin-zeile .re { display: flex; gap: 6px; flex-wrap: wrap; }
+.frist { font-size: 12px; color: var(--soft); }
+.frist.nah { color: var(--warn); }
+
+@media (max-width: 760px) {
+  .nav { max-width: none; flex-basis: 100%; flex-direction: row; overflow-x: auto; padding: 6px; position: static; }
+  .brand, .sync { display: none; }
+  .stats { grid-template-columns: 1fr 1fr 1fr; }
+  .stat b { font-size: 20px; }
+}
+@media (prefers-reduced-motion: no-preference) { .btn, .nav a, .modul > button { transition: background 0.15s; } }
+</style>
+
+<div class="app">
+  <nav class="nav" aria-label="Hauptnavigation">
+    <div class="brand"><div class="logo" aria-hidden="true">S</div><span>StudiCockpit</span></div>
+    <a href="#dashboard" data-view="dashboard"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>Dashboard</a>
+    <a href="#studium" data-view="studium"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg>Studium</a>
+    <a href="#stundenplan" data-view="stundenplan"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Stundenplan</a>
+    <a href="#termine" data-view="termine"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>Prüfungen &amp; Termine</a>
+    <a href="#daten" data-view="daten"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg>Daten &amp; Sicherung</a>
+    <div class="sync" id="sync" role="status"><i></i><span>Verbinde …</span></div>
+  </nav>
+  <main id="main"></main>
+</div>
+<div class="overlay" id="overlay" hidden></div>
+
+<!-- Studiengang: B. Sc. Sportwissenschaft, Ruhr-Universität Bochum. Quelle: Modulhandbuch (Stand 24.08.2026) und Prüfungsordnung 2025 (AB Nr. 1707). Nur dort belegte Angaben; Lücken sind als null bzw. Hinweis markiert. -->
+<script type="application/json" id="studiengang">
+{
+  "quelle": "Modulhandbuch B. Sc. Sportwissenschaft (Stand 24.08.2026) · PO 2025 (AB Nr. 1707)",
+  "gesamtCP": 180,
+  "regelstudienzeit": 6,
+  "start": "WiSe 26/27",
+  "bereiche": [
+    { "id": "GRUND", "name": "Schwerpunktübergreifende Module", "kurz": "Grundlagen (M1–13)", "cp": 95 },
+    { "id": "SP", "name": "Studienschwerpunkt", "kurz": "Schwerpunkt (M14–19)", "cp": 57 },
+    { "id": "OPT", "name": "Optionalbereich", "kurz": "Optionalbereich", "cp": 10 },
+    { "id": "PRAK", "name": "Berufsfeldpraktikum", "kurz": "Praktikum", "cp": 10 },
+    { "id": "BA", "name": "Bachelorarbeit", "kurz": "Bachelorarbeit", "cp": 8 }
+  ],
+  "schwerpunkte": [
+    { "id": "TD", "name": "Training & Diagnostik für Gesundheit & Leistung" },
+    { "id": "SM", "name": "Sportmanagement" }
+  ],
+  "nachweise": [
+    { "id": "info", "name": "Informationsveranstaltung zu den Studienschwerpunkten", "quelle": "PO § 4 Abs. 6" },
+    { "id": "rettungsschwimmer", "name": "Rettungsschwimmabzeichen Silber", "quelle": "PO § 15 Abs. 1" },
+    { "id": "expose", "name": "Exposé zur Bachelorarbeit", "quelle": "PO § 15 Abs. 1" }
+  ],
+  "module": [
+    { "id": "M1", "nr": "1", "name": "Einführung in die Sportwissenschaft", "bereich": "GRUND", "cp": 7, "sem": [1, 2], "dauer": "2 Semester",
+      "angebot": "Vorlesungen abwechselnd jedes 2. Semester, Seminare jedes Semester",
+      "pruefung": "Klausur (unbenotet)", "benotet": false, "gewicht": 0,
+      "wahl": "Alle vier Veranstaltungen sind zu belegen.",
+      "cpRegel": "Vorlesungen ohne Anwesenheitspflicht; in Seminaren höchstens 20 % Fehltermine; alle Studienleistungen in ausreichender Qualität.",
+      "voraussetzungText": "keine",
+      "lv": [
+        { "id": "m1-fl", "titel": "Forschendes Lernen und wissenschaftliches Arbeiten", "art": "S", "sws": null, "cp": 2, "angebot": "jedes", "hinweis": "Voraussetzung für den Studienschwerpunkt" },
+        { "id": "m1-bb", "titel": "Grundlagen der Bewegungsbildung", "art": "S", "sws": null, "cp": 2, "angebot": "jedes" },
+        { "id": "m1-gv", "titel": "Grundlagen der Vermittlung von Inhalten der Sportwissenschaft", "art": "V", "sws": null, "cp": 2, "angebot": "wechselnd", "hinweis": "Voraussetzung für den Studienschwerpunkt" },
+        { "id": "m1-at", "titel": "Aktuelle Themen der Sportwissenschaft", "art": "V", "sws": null, "cp": 1, "angebot": "wechselnd" }
+      ] },
+    { "id": "M2", "nr": "2", "name": "Didaktisch-methodische Grundlagen der Bewegungsfelder im Individualbereich", "bereich": "GRUND", "cp": 12, "sem": [1, 6], "dauer": "2–3 Semester",
+      "angebot": "jedes Semester",
+      "pruefung": "Theoretische und sportpraktische Leistungsüberprüfungen, Lehrübungen. Modulnote = Mittel aus einer Praxis- und einer Theorieteilprüfung; die beiden Teilprüfungen dürfen aus unterschiedlichen Seminaren stammen.", "benotet": true, "gewicht": 0.0333333,
+      "wahl": "Schwimmen ist Pflicht, dazu zwei der drei übrigen Seminare.",
+      "cpRegel": "In Seminaren höchstens 20 % Fehltermine; alle Studienleistungen in ausreichender Qualität.",
+      "voraussetzungText": "keine",
+      "lv": [
+        { "id": "m2-sw", "titel": "Bewegen im Wasser – Schwimmen", "art": "S", "sws": 4, "cp": 4, "angebot": "jedes", "pflicht": true },
+        { "id": "m2-gt", "titel": "Bewegen an Geräten – Gerätturnen", "art": "S", "sws": 4, "cp": 4, "angebot": "jedes" },
+        { "id": "m2-tz", "titel": "Explorieren, Gestalten, Darstellen – Tanz", "art": "S", "sws": 4, "cp": 4, "angebot": "jedes" },
+        { "id": "m2-la", "titel": "Laufen, Springen, Werfen – Leichtathletik", "art": "S", "sws": 4, "cp": 4, "angebot": "jedes" }
+      ] },
+    { "id": "M3", "nr": "3", "name": "Didaktisch-methodische Grundlagen der Sportspiele", "bereich": "GRUND", "cp": 14, "sem": [1, 6], "dauer": "2–4 Semester",
+      "angebot": "jedes Semester",
+      "pruefung": "Theoretische und sportpraktische Leistungsüberprüfungen, Lehrübungen. Modulnote = Mittel aus Praxis- und Theorieteilprüfung; Kombination aus zwei Seminaren zulässig.", "benotet": true, "gewicht": 0.0333333,
+      "wahl": "Zwei Mannschaftsspiele aus Basketball, Fußball, Handball und zwei Rückschlagspiele aus Badminton, Tennis, Volleyball – je Bereich ein Seminar mit 2 SWS (3 CP) und eins mit 4 SWS (4 CP).",
+      "cpRegel": "In Seminaren höchstens 20 % Fehltermine; alle Studienleistungen in ausreichender Qualität.",
+      "voraussetzungText": "keine",
+      "lv": [
+        { "id": "m3-bb", "titel": "Basketball", "art": "S", "sws": null, "cp": 3, "cpOptionen": [3, 4], "angebot": "jedes", "hinweis": "Mannschaftsspiel" },
+        { "id": "m3-fb", "titel": "Fußball", "art": "S", "sws": null, "cp": 3, "cpOptionen": [3, 4], "angebot": "jedes", "hinweis": "Mannschaftsspiel" },
+        { "id": "m3-hb", "titel": "Handball", "art": "S", "sws": null, "cp": 3, "cpOptionen": [3, 4], "angebot": "jedes", "hinweis": "Mannschaftsspiel" },
+        { "id": "m3-bm", "titel": "Badminton", "art": "S", "sws": null, "cp": 3, "cpOptionen": [3, 4], "angebot": "jedes", "hinweis": "Rückschlagspiel" },
+        { "id": "m3-tn", "titel": "Tennis", "art": "S", "sws": null, "cp": 3, "cpOptionen": [3, 4], "angebot": "jedes", "hinweis": "Rückschlagspiel" },
+        { "id": "m3-vb", "titel": "Volleyball", "art": "S", "sws": null, "cp": 3, "cpOptionen": [3, 4], "angebot": "jedes", "hinweis": "Rückschlagspiel" }
+      ] },
+    { "id": "M4", "nr": "4", "name": "Didaktisch-methodische Grundlagen des Natursports und weiterer Bewegungsfelder", "bereich": "GRUND", "cp": 14, "sem": [1, 6], "dauer": "2–4 Semester",
+      "angebot": "jedes Semester",
+      "pruefung": "Theoretische und sportpraktische Leistungsüberprüfungen, Lehrübungen. Modulnote = Mittel aus Praxis- und Theorieteilprüfung; Kombination aus zwei Seminaren zulässig.", "benotet": true, "gewicht": 0.0333333,
+      "wahl": "Vier Seminare: zwei mit 2 SWS (3 CP) und zwei mit 4 SWS (4 CP) aus Wassersport, Schneesport und weiteren Sportarten/Bewegungsfeldern nach Angebot.",
+      "cpRegel": "In Seminaren höchstens 20 % Fehltermine; alle Studienleistungen in ausreichender Qualität.",
+      "voraussetzungText": "keine",
+      "lv": [
+        { "id": "m4-ws", "titel": "Wassersport (z. B. Rudern, Segeln, Windsurfen)", "art": "S", "sws": null, "cp": 3, "cpOptionen": [3, 4], "angebot": "jedes", "mehrfach": true },
+        { "id": "m4-ss", "titel": "Schneesport (z. B. Ski, Snowboard)", "art": "S", "sws": null, "cp": 3, "cpOptionen": [3, 4], "angebot": "jedes", "mehrfach": true },
+        { "id": "m4-wb", "titel": "Weitere Sportart/Bewegungsfeld (z. B. Hockey, Judo, Klettern/Bergwandern)", "art": "S", "sws": null, "cp": 3, "cpOptionen": [3, 4], "angebot": "jedes", "mehrfach": true }
+      ] },
+    { "id": "M5", "nr": "5", "name": "Grundlagen der Sportmedizin", "bereich": "GRUND", "cp": 5, "sem": [1, 4], "dauer": "2 Semester",
+      "angebot": "Vorlesung jeweils im Wintersemester, Seminar jedes Semester",
+      "pruefung": "Klausur", "benotet": true, "gewicht": 0.0333333,
+      "wahl": "Vorlesung und Vertiefungsseminar.",
+      "cpRegel": "Vorlesung ohne Anwesenheitspflicht; im Seminar höchstens 20 % Fehltermine; alle Studienleistungen in ausreichender Qualität.",
+      "voraussetzungText": "Erfolgreicher Abschluss der Vorlesung ist Zulassungsvoraussetzung für das Vertiefungsseminar.",
+      "lv": [
+        { "id": "m5-v", "titel": "Einführung in die Sportmedizin", "art": "V", "sws": 2, "cp": 2, "angebot": "WiSe" },
+        { "id": "m5-s", "titel": "Vertiefungsseminar Sportmedizin", "art": "S", "sws": 2, "cp": 3, "angebot": "jedes", "regel": { "typ": "nachLV", "lv": ["m5-v"] } }
+      ] },
+    { "id": "M6", "nr": "6", "name": "Grundlagen der Bewegungswissenschaft", "bereich": "GRUND", "cp": 5, "sem": [1, 4], "dauer": "2 Semester",
+      "angebot": "Vorlesung jeweils im Sommersemester, Seminar jedes Semester",
+      "pruefung": "Klausur", "benotet": true, "gewicht": 0.0333333,
+      "wahl": "Vorlesung und Vertiefungsseminar.",
+      "cpRegel": "Vorlesung ohne Anwesenheitspflicht; im Seminar höchstens 20 % Fehltermine; alle Studienleistungen in ausreichender Qualität.",
+      "voraussetzungText": "Das Vertiefungsseminar kann frühestens parallel zur Vorlesung belegt werden.",
+      "lv": [
+        { "id": "m6-v", "titel": "Einführung in die Bewegungswissenschaft", "art": "V", "sws": 2, "cp": 2, "angebot": "SoSe" },
+        { "id": "m6-s", "titel": "Vertiefungsseminar Bewegungswissenschaft", "art": "S", "sws": 2, "cp": 3, "angebot": "jedes", "regel": { "typ": "parallelLV", "lv": "m6-v" } }
+      ] },
+    { "id": "M7", "nr": "7", "name": "Grundlagen der Trainingswissenschaft", "bereich": "GRUND", "cp": 5, "sem": [1, 4], "dauer": "2 Semester",
+      "angebot": "Vorlesung jeweils im Sommersemester, Seminar jedes Semester",
+      "pruefung": "Klausur", "benotet": true, "gewicht": 0.0333333,
+      "wahl": "Vorlesung und Vertiefungsseminar.",
+      "cpRegel": "Vorlesung ohne Anwesenheitspflicht; im Seminar höchstens 20 % Fehltermine; alle Studienleistungen in ausreichender Qualität.",
+      "voraussetzungText": "Das Vertiefungsseminar kann frühestens parallel zur Vorlesung belegt werden.",
+      "lv": [
+        { "id": "m7-v", "titel": "Einführung in die Trainingswissenschaft", "art": "V", "sws": 2, "cp": 2, "angebot": "SoSe" },
+        { "id": "m7-s", "titel": "Vertiefungsseminar Trainingswissenschaft", "art": "S", "sws": 2, "cp": 3, "angebot": "jedes", "regel": { "typ": "parallelLV", "lv": "m7-v" } }
+      ] },
+    { "id": "M8", "nr": "8", "name": "Grundlagen der Sportpsychologie", "bereich": "GRUND", "cp": 5, "sem": [1, 4], "dauer": "2 Semester",
+      "angebot": "Vorlesung jeweils im Sommersemester, Seminar jedes Semester",
+      "pruefung": "Klausur", "benotet": true, "gewicht": 0.0333333,
+      "wahl": "Vorlesung und Vertiefungsseminar.",
+      "cpRegel": "Vorlesung ohne Anwesenheitspflicht; im Seminar höchstens 20 % Fehltermine; alle Studienleistungen in ausreichender Qualität.",
+      "voraussetzungText": "Das Vertiefungsseminar kann frühestens parallel zur Vorlesung belegt werden.",
+      "lv": [
+        { "id": "m8-v", "titel": "Einführung in die Sportpsychologie", "art": "V", "sws": 2, "cp": 2, "angebot": "SoSe" },
+        { "id": "m8-s", "titel": "Vertiefungsseminar Sportpsychologie", "art": "S", "sws": 2, "cp": 3, "angebot": "jedes", "regel": { "typ": "parallelLV", "lv": "m8-v" } }
+      ] },
+    { "id": "M9", "nr": "9", "name": "Grundlagen der Sportgeschichte und Sportsoziologie", "bereich": "GRUND", "cp": 5, "sem": [1, 4], "dauer": "2 Semester",
+      "angebot": "Vorlesung jeweils im Wintersemester, Seminar jedes Semester",
+      "pruefung": "Klausur", "benotet": true, "gewicht": 0.0333333,
+      "wahl": "Vorlesung und ein Vertiefungsseminar (Sportgeschichte oder Sportsoziologie).",
+      "cpRegel": "Vorlesung ohne Anwesenheitspflicht; im Seminar höchstens 20 % Fehltermine; alle Studienleistungen in ausreichender Qualität.",
+      "voraussetzungText": "keine angegeben",
+      "lv": [
+        { "id": "m9-v", "titel": "Einführung in die Sportgeschichte und Sportsoziologie", "art": "V", "sws": 2, "cp": 2, "angebot": "WiSe" },
+        { "id": "m9-s", "titel": "Vertiefungsseminar Sportgeschichte oder Sportsoziologie", "art": "S", "sws": 2, "cp": 3, "angebot": "jedes" }
+      ] },
+    { "id": "M10", "nr": "10", "name": "Grundlagen der Sportpädagogik", "bereich": "GRUND", "cp": 5, "sem": [1, 4], "dauer": "2 Semester",
+      "angebot": "Vorlesung jeweils im Sommersemester, Seminar jedes Semester",
+      "pruefung": "Klausur", "benotet": true, "gewicht": 0.0333333,
+      "wahl": "Vorlesung und Vertiefungsseminar.",
+      "cpRegel": "Vorlesung ohne Anwesenheitspflicht; im Seminar höchstens 20 % Fehltermine; alle Studienleistungen in ausreichender Qualität.",
+      "voraussetzungText": "Das Vertiefungsseminar kann frühestens parallel zur Vorlesung belegt werden.",
+      "lv": [
+        { "id": "m10-v", "titel": "Einführung in die Sportpädagogik", "art": "V", "sws": 2, "cp": 2, "angebot": "SoSe" },
+        { "id": "m10-s", "titel": "Vertiefungsseminar Sportpädagogik", "art": "S", "sws": 2, "cp": 3, "angebot": "jedes", "regel": { "typ": "parallelLV", "lv": "m10-v" } }
+      ] },
+    { "id": "M11", "nr": "11", "name": "Grundlagen des Sportmanagements", "bereich": "GRUND", "cp": 5, "sem": [1, 4], "dauer": "2 Semester",
+      "angebot": "Vorlesung jeweils im Sommersemester, Seminar jedes Semester",
+      "pruefung": "Klausur", "benotet": true, "gewicht": 0.0333333,
+      "wahl": "Vorlesung und Vertiefungsseminar.",
+      "cpRegel": "Vorlesung ohne Anwesenheitspflicht; im Seminar höchstens 20 % Fehltermine; alle Studienleistungen in ausreichender Qualität.",
+      "voraussetzungText": "Das Vertiefungsseminar kann frühestens parallel zur Vorlesung belegt werden.",
+      "lv": [
+        { "id": "m11-v", "titel": "Einführung in das Sportmanagement", "art": "V", "sws": 2, "cp": 2, "angebot": "SoSe" },
+        { "id": "m11-s", "titel": "Vertiefungsseminar Sportmanagement", "art": "S", "sws": 2, "cp": 3, "angebot": "jedes", "regel": { "typ": "parallelLV", "lv": "m11-v" } }
+      ] },
+    { "id": "M12", "nr": "12", "name": "Wissenschaftliche Vertiefung der Sportarten und Bewegungsfelder", "bereich": "GRUND", "cp": 8, "sem": [3, 6], "dauer": "2 Semester",
+      "angebot": "jedes Semester",
+      "pruefung": "Theoretische und sportpraktische Leistungsüberprüfungen, Lehrübungen", "benotet": true, "gewicht": 0.0333333,
+      "wahl": "Vertiefung A und Vertiefung B.",
+      "cpRegel": "In Seminaren höchstens 20 % Fehltermine; alle Studienleistungen in ausreichender Qualität.",
+      "voraussetzungText": "Sportartspezifische Vertiefung: diese Sportart bzw. dieses Bewegungsfeld aus Modul 2–4 erfolgreich abgeschlossen. Fächerübergreifende Vertiefung: mindestens eine Sportart bzw. ein Bewegungsfeld aus Modul 2–4 abgeschlossen.",
+      "regeln": [ { "typ": "m2bis4" } ],
+      "lv": [
+        { "id": "m12-a", "titel": "Vertiefung A (fachdidaktische Vertiefung)", "art": "S", "sws": 4, "cp": 4, "angebot": "jedes" },
+        { "id": "m12-b", "titel": "Vertiefung B (forschungs-/anwendungsorientierte Vertiefung)", "art": "S", "sws": 4, "cp": 4, "angebot": "jedes" }
+      ] },
+    { "id": "M13", "nr": "13", "name": "Forschungsmethodik", "bereich": "GRUND", "cp": 5, "sem": [3, 5], "dauer": "2 Semester",
+      "angebot": "Vorlesung jedes Sommersemester, Seminar jedes Semester",
+      "pruefung": "Klausur", "benotet": true, "gewicht": 0.0333333,
+      "wahl": "Vorlesung und Vertiefungsseminar.",
+      "cpRegel": "Vorlesung ohne Anwesenheitspflicht; im Seminar höchstens 20 % Fehltermine; alle Studienleistungen in ausreichender Qualität.",
+      "voraussetzungText": "Das Vertiefungsseminar kann frühestens parallel zur Vorlesung belegt werden. Modul 13 ist Voraussetzung für die Bachelorarbeit (und im Schwerpunkt Training & Diagnostik für Modul 19).",
+      "lv": [
+        { "id": "m13-v", "titel": "Einführung in die sportwissenschaftliche Forschungsmethodik", "art": "V", "sws": 2, "cp": 2, "angebot": "SoSe" },
+        { "id": "m13-s", "titel": "Vertiefungsseminar Forschungsmethodik", "art": "S", "sws": 2, "cp": 3, "angebot": "jedes", "regel": { "typ": "parallelLV", "lv": "m13-v" } }
+      ] },
+
+    { "id": "TD14", "nr": "14", "sp": "TD", "name": "Schwerpunktspezifische Grundlagen I", "bereich": "SP", "cp": 9, "sem": [3, 5], "dauer": "1–2 Semester",
+      "angebot": "jedes bzw. jedes 2. Semester", "pruefung": "Klausur", "benotet": true, "gewicht": 0.0833333,
+      "voraussetzungText": "Zulassung zum Studienschwerpunkt", "regeln": [ { "typ": "zulassungSP" } ],
+      "lv": [
+        { "id": "td14-a", "titel": "Anatomie, Physiologie und Pathophysiologie", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf" },
+        { "id": "td14-f", "titel": "Funktionelle Anatomie/Funktionsgymnastik", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf" },
+        { "id": "td14-b", "titel": "Biomechanik", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf" }
+      ] },
+    { "id": "TD15", "nr": "15", "sp": "TD", "name": "Schwerpunktspezifische Grundlagen II", "bereich": "SP", "cp": 9, "sem": [3, 5], "dauer": "2 Semester",
+      "angebot": "jedes bzw. jedes 2. Semester", "pruefung": "Klausur", "benotet": true, "gewicht": 0.0833333,
+      "voraussetzungText": "Zulassung zum Studienschwerpunkt", "regeln": [ { "typ": "zulassungSP" } ],
+      "lv": [
+        { "id": "td15-tp", "titel": "Trainings- und Therapieplanung", "art": "S", "sws": null, "cp": 3, "angebot": "bedarf" },
+        { "id": "td15-dt", "titel": "Diagnostik (Theorie)", "art": "S", "sws": null, "cp": 3, "angebot": "bedarf" },
+        { "id": "td15-t1", "titel": "Leistungs- und gesundheitsdiagnostische Testverfahren, Teil 1 (medizinisch)", "art": "T", "sws": null, "cp": 1.5, "angebot": "bedarf" },
+        { "id": "td15-t2", "titel": "Leistungs- und gesundheitsdiagnostische Testverfahren, Teil 2 (bewegungs-/trainingswissenschaftlich)", "art": "T", "sws": null, "cp": 1.5, "angebot": "bedarf" }
+      ] },
+    { "id": "TD16", "nr": "16", "sp": "TD", "name": "Berufsfeld- und adressatenspezifische Grundlagen", "bereich": "SP", "cp": 6, "sem": [3, 6], "dauer": "1–2 Semester",
+      "angebot": "jedes bzw. jedes 2. Semester", "pruefung": "Klausur", "benotet": true, "gewicht": 0.0833333,
+      "voraussetzungText": "Zulassung zum Studienschwerpunkt", "regeln": [ { "typ": "zulassungSP" } ],
+      "lv": [
+        { "id": "td16-o", "titel": "Organisationsstrukturen, Förderstrukturen", "art": "S", "sws": null, "cp": 3, "angebot": "bedarf" },
+        { "id": "td16-p", "titel": "Pädagogische und ethische Aspekte im Leistungs- und Gesundheitssport", "art": "S", "sws": null, "cp": 3, "angebot": "bedarf" }
+      ] },
+    { "id": "TD17", "nr": "17", "sp": "TD", "name": "Leistungsdiagnostik und Trainingssteuerung", "bereich": "SP", "cp": 12, "sem": [3, 6], "dauer": "2–3 Semester",
+      "angebot": "jedes bzw. jedes 2. Semester", "pruefung": "Klausur", "benotet": true, "gewicht": 0.0833333,
+      "voraussetzungText": "Zulassung zum Studienschwerpunkt", "regeln": [ { "typ": "zulassungSP" } ],
+      "lv": [
+        { "id": "td17-k", "titel": "Kraft- und Schnelligkeit", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf" },
+        { "id": "td17-a", "titel": "Ausdauer", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf" },
+        { "id": "td17-b", "titel": "Bewegungswissenschaft & Bewegungsanalysen", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf" },
+        { "id": "td17-m", "titel": "Monitoring und Tracking", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf" }
+      ] },
+    { "id": "TD18", "nr": "18", "sp": "TD", "name": "Ernährung und Return to Sports", "bereich": "SP", "cp": 13.5, "sem": [3, 6], "dauer": "2 Semester",
+      "angebot": "jedes bzw. jedes 2. Semester", "pruefung": "Mündliche Prüfung: Ernährung 15 min und Return to Sports 15 min (je Fallbeispiel)", "benotet": true, "gewicht": 0.0833333,
+      "voraussetzungText": "Zulassung zum Studienschwerpunkt; für das Vertiefungsseminar Sporternährung der erfolgreiche Abschluss der Grundlagen der Sporternährung.", "regeln": [ { "typ": "zulassungSP" } ],
+      "lv": [
+        { "id": "td18-g", "titel": "Grundlagen der Sporternährung", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf" },
+        { "id": "td18-v", "titel": "Vertiefungsseminar Sporternährung", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf", "regel": { "typ": "nachLV", "lv": ["td18-g"] } },
+        { "id": "td18-m", "titel": "Medizinische Trainingstherapie (MTT)", "art": "S", "sws": 3, "cp": 4.5, "angebot": "bedarf" },
+        { "id": "td18-r", "titel": "Regenerations- & Entspannungsverfahren, Rückengymnastik, Wassergymnastik", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf" }
+      ] },
+    { "id": "TD19", "nr": "19", "sp": "TD", "name": "Methodische Vertiefung zum wissenschaftlichen Arbeiten", "bereich": "SP", "cp": 7.5, "sem": [5, 6], "dauer": "1 Semester",
+      "angebot": "jedes bzw. jedes 2. Semester", "pruefung": "Projektbericht (50 %) und mündliche Gruppenprüfung (50 %)", "benotet": true, "gewicht": 0.0833333,
+      "voraussetzungText": "Zulassung zum Studienschwerpunkt; Modul 13 abgeschlossen.", "regeln": [ { "typ": "zulassungSP" }, { "typ": "modulAbgeschlossen", "modul": "M13" } ],
+      "lv": [
+        { "id": "td19-s", "titel": "Angewandte statistische Methoden und Datenverarbeitung", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf" },
+        { "id": "td19-p", "titel": "Forschungsprojekt (Forschendes Lernen)", "art": "P", "sws": 3, "cp": 4.5, "angebot": "bedarf" }
+      ] },
+
+    { "id": "SM14", "nr": "14", "sp": "SM", "name": "Ökonomische Grundlagen", "bereich": "SP", "cp": 8, "sem": [3, 5], "dauer": "2 Semester",
+      "angebot": "Vorlesung jedes Semester, Seminar jedes oder jedes 2. Semester", "pruefung": "Klausur", "benotet": true, "gewicht": 0.0833333,
+      "voraussetzungText": "Zulassung zum Studienschwerpunkt; die VWL-Vorlesung (Fakultät für Wirtschaftswissenschaft) ist vor dem Seminar erfolgreich abzuschließen.", "regeln": [ { "typ": "zulassungSP" } ],
+      "lv": [
+        { "id": "sm14-vwl", "titel": "Einführung in die Volkswirtschaftslehre", "art": "V+Ü", "sws": 3, "cp": 5, "angebot": "jedes" },
+        { "id": "sm14-s", "titel": "Sportökonomie", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf", "regel": { "typ": "nachLV", "lv": ["sm14-vwl"] } }
+      ] },
+    { "id": "SM15", "nr": "15", "sp": "SM", "name": "Betriebswirtschaftliche Grundlagen", "bereich": "SP", "cp": 8, "sem": [3, 5], "dauer": "2 Semester",
+      "angebot": "Vorlesung jedes Semester, Seminar jedes oder jedes 2. Semester", "pruefung": "Klausur", "benotet": true, "gewicht": 0.0833333,
+      "voraussetzungText": "Zulassung zum Studienschwerpunkt; die BWL-Vorlesung (Fakultät für Wirtschaftswissenschaft) ist vor dem Seminar erfolgreich abzuschließen.", "regeln": [ { "typ": "zulassungSP" } ],
+      "hinweis": "Die Tabelle im Modulhandbuch nennt hier zusätzlich Einzelwerte von 1,5 CP, deren Zuordnung unklar ist. Im Zweifel bei der Studienfachberatung nachfragen.",
+      "lv": [
+        { "id": "sm15-bwl", "titel": "Einführung in die Betriebswirtschaftslehre", "art": "V+Ü", "sws": 3, "cp": 5, "angebot": "jedes" },
+        { "id": "sm15-s", "titel": "Sport-Betriebswirtschaftslehre", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf", "regel": { "typ": "nachLV", "lv": ["sm15-bwl"] } }
+      ] },
+    { "id": "SM16", "nr": "16", "sp": "SM", "name": "Marketing", "bereich": "SP", "cp": 11, "sem": [3, 5], "dauer": "3 Semester",
+      "angebot": "jedes oder jedes 2. Semester", "pruefung": "Mündliche Prüfung", "benotet": true, "gewicht": 0.0833333,
+      "voraussetzungText": "Zulassung zum Studienschwerpunkt; die Marketing-Vorlesung (Fakultät für Wirtschaftswissenschaft) ist vor den Seminaren erfolgreich abzuschließen.", "regeln": [ { "typ": "zulassungSP" } ],
+      "lv": [
+        { "id": "sm16-mk", "titel": "Einführung in das Marketing", "art": "V+Ü", "sws": 3, "cp": 5, "angebot": "bedarf" },
+        { "id": "sm16-sm", "titel": "Sportmarketing", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf", "regel": { "typ": "nachLV", "lv": ["sm16-mk"] } },
+        { "id": "sm16-sp", "titel": "Sportsponsoring", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf", "regel": { "typ": "nachLV", "lv": ["sm16-mk"] } }
+      ] },
+    { "id": "SM17", "nr": "17", "sp": "SM", "name": "Finanzierung und Recht", "bereich": "SP", "cp": 11, "sem": [4, 5], "dauer": "2 Semester",
+      "angebot": "nach Bedarf, mindestens jedes zweite Semester", "pruefung": "Klausur", "benotet": true, "gewicht": 0.0833333,
+      "voraussetzungText": "Zulassung zum Studienschwerpunkt; die Vorlesung „Einführung in das Rechnungswesen/Controlling“ ist vor dem Seminar erfolgreich abzuschließen.", "regeln": [ { "typ": "zulassungSP" } ],
+      "hinweis": "Das Modulhandbuch sagt „vor dem Seminar“ (Einzahl), ohne zu nennen, welches. Die App zeigt deshalb nur einen Hinweis statt einer Sperre.",
+      "lv": [
+        { "id": "sm17-rc", "titel": "Einführung in das Rechnungswesen und Controlling", "art": "V+Ü", "sws": 3, "cp": 5, "angebot": "bedarf" },
+        { "id": "sm17-if", "titel": "Investition und Finanzierung im Sport", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf", "regel": { "typ": "hinweisLV", "lv": "sm17-rc" } },
+        { "id": "sm17-sr", "titel": "Sportrecht", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf", "regel": { "typ": "hinweisLV", "lv": "sm17-rc" } }
+      ] },
+    { "id": "SM18", "nr": "18", "sp": "SM", "name": "Angewandtes Sportmanagement", "bereich": "SP", "cp": 12, "sem": [5, 6], "dauer": "2 Semester",
+      "angebot": "jedes zweite Semester", "pruefung": "Klausur", "benotet": true, "gewicht": 0.0833333,
+      "voraussetzungText": "Zulassung zum Studienschwerpunkt; die Vorlesungen Einführung in die BWL, VWL und Marketing sowie Arbeits-, Organisations- und Wirtschaftspsychologie sind vor dem ersten Seminar erfolgreich abzuschließen.", "regeln": [ { "typ": "zulassungSP" } ],
+      "lv": [
+        { "id": "sm18-aow", "titel": "Arbeits-, Organisations- und Wirtschaftspsychologie", "art": "V", "sws": 2, "cp": 3, "angebot": "bedarf" },
+        { "id": "sm18-bm", "titel": "Business Modelling im Sport", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf", "regel": { "typ": "nachLV", "lv": ["sm15-bwl", "sm14-vwl", "sm16-mk", "sm18-aow"] } },
+        { "id": "sm18-ev", "titel": "Event- und Sportanlagenmanagement", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf", "regel": { "typ": "nachLV", "lv": ["sm15-bwl", "sm14-vwl", "sm16-mk", "sm18-aow"] } },
+        { "id": "sm18-vv", "titel": "Sport im Kontext von Verein und Verband", "art": "S", "sws": 2, "cp": 3, "angebot": "bedarf", "regel": { "typ": "nachLV", "lv": ["sm15-bwl", "sm14-vwl", "sm16-mk", "sm18-aow"] } }
+      ] },
+    { "id": "SM19", "nr": "19", "sp": "SM", "name": "Wissenschaftliches Projekt", "bereich": "SP", "cp": 7, "sem": null, "dauer": null,
+      "angebot": null, "pruefung": null, "benotet": true, "gewicht": 0.0833333,
+      "voraussetzungText": "Zulassung zum Studienschwerpunkt (weitere Angaben im Modulhandbuch nicht lesbar).", "regeln": [ { "typ": "zulassungSP" } ],
+      "hinweis": "In der Online-Fassung des Modulhandbuchs ist die Seite zu diesem Modul abgeschnitten. Semester, Angebot, Prüfungsform und weitere Voraussetzungen bitte im Original nachsehen.",
+      "lv": [
+        { "id": "sm19-fm", "titel": "Angewandte Forschungsmethoden", "art": "S", "sws": null, "cp": 3, "angebot": "bedarf" },
+        { "id": "sm19-pm", "titel": "Grundlagen des Projektmanagements", "art": "S", "sws": null, "cp": 1, "angebot": "bedarf" },
+        { "id": "sm19-wp", "titel": "Wissenschaftliches Projekt", "art": "S", "sws": null, "cp": 3, "angebot": "bedarf" }
+      ] },
+
+    { "id": "OPT", "nr": "OB", "name": "Optionalbereich", "bereich": "OPT", "cp": 10, "sem": null, "dauer": null,
+      "angebot": "Angebot des Optionalbereichs der RUB", "pruefung": null, "benotet": false, "gewicht": 0,
+      "wahl": "Module nach eigener Wahl im Umfang von 10 CP (PO § 5 Abs. 2).", "voraussetzungText": "keine",
+      "lv": [] },
+    { "id": "PRAK", "nr": "BP", "name": "Berufsfeldpraktikum", "bereich": "PRAK", "cp": 10, "sem": null, "dauer": "8 Wochen",
+      "angebot": null, "pruefung": null, "benotet": false, "gewicht": 0, "cpDurchModul": true,
+      "wahl": "Praktikum im Umfang von 8 Wochen (PO § 4 Abs. 3).", "voraussetzungText": "keine angegeben",
+      "lv": [] },
+    { "id": "M20", "nr": "20", "name": "Bachelorarbeit", "bereich": "BA", "cp": 8, "sem": null, "dauer": "6 Wochen Bearbeitungszeit",
+      "angebot": null, "pruefung": "Bachelorarbeit und Kolloquium; einmal wiederholbar (mit neuem Thema)", "benotet": true, "gewicht": 0.1, "cpDurchModul": true,
+      "voraussetzungText": "Mindestens 25 CP im Studienschwerpunkt, Modulprüfungen 13 und 19 bestanden, Rettungsschwimmabzeichen Silber, Exposé mit vorläufiger Gliederung und Quellenverzeichnis (PO § 15 Abs. 1).",
+      "regeln": [ { "typ": "spCP", "cp": 25 }, { "typ": "modulAbgeschlossen", "modul": "M13" }, { "typ": "modulAbgeschlossen", "modul": "SP19" }, { "typ": "nachweis", "id": "rettungsschwimmer" }, { "typ": "nachweis", "id": "expose" } ],
+      "lv": [] }
+  ]
+}
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  // ================= Studiengang =================
+  var SG = JSON.parse(document.getElementById('studiengang').textContent);
+  var MOD = {}, LV = {};
+  SG.module.forEach(function (m) { MOD[m.id] = m; m.lv.forEach(function (l) { l.modul = m.id; LV[l.id] = l; }); });
+  var BEREICH = {}; SG.bereiche.forEach(function (b) { BEREICH[b.id] = b; });
+  var SP_NAME = {}; SG.schwerpunkte.forEach(function (s) { SP_NAME[s.id] = s.name; });
+  var NACHWEIS = {}; SG.nachweise.forEach(function (n) { NACHWEIS[n.id] = n; });
+
+  var TAGE = ['Mo', 'Di', 'Mi', 'Do', 'Fr'];
+  var TAGE_LANG = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'];
+  var MONATE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+  var PALETTEN = {
+    Lila: { accent: '#C38BFF', hi: '#DEC4FF', line: '#432E66', bg: '#1F1733', a2: '#FF8FC7' },
+    Lavendel: { accent: '#B69CFF', hi: '#D5C6FF', line: '#3D3263', bg: '#1C1830', a2: '#FF8FC7' },
+    Pink: { accent: '#FF8FC7', hi: '#FFC0DF', line: '#5A2E46', bg: '#2A1622', a2: '#B69CFF' },
+    Blau: { accent: '#7FB2FF', hi: '#B5D2FF', line: '#26395C', bg: '#141D2E', a2: '#C59CFF' },
+    Lime: { accent: '#C8F135', hi: '#E2FF8A', line: '#3A4A12', bg: '#1B2010', a2: '#8FD3FF' }
+  };
+  var KURSFARBEN = ['#C38BFF', '#FF8FC7', '#7FB2FF', '#FF9E8F', '#8FE3B0', '#FFD27F', '#7FE0E0'];
+  var BELEG_STATUS = { geplant: 'geplant', laeuft: 'läuft', bestanden: 'bestanden' };
+  var MODUL_STATUS = { offen: 'offen', geplant: 'geplant', inBearbeitung: 'in Bearbeitung', abgeschlossen: 'abgeschlossen' };
+  var PRUEF_STATUS = { offen: 'noch nicht abgelegt', angemeldet: 'angemeldet', bestanden: 'bestanden', nicht_bestanden: 'nicht bestanden' };
+  var TERMIN_TYP = { pruefung: 'Prüfung', abgabe: 'Abgabe', frist: 'Frist', termin: 'Termin' };
+  var ANGEBOT_TEXT = { jedes: 'jedes Semester', WiSe: 'nur im Wintersemester', SoSe: 'nur im Sommersemester', wechselnd: 'jedes 2. Semester (abwechselnd)', bedarf: 'jedes bzw. jedes 2. Semester' };
+
+  // ================= Semester =================
+  function semesterListe(start, n) {
+    var m = /^(WiSe|SoSe) (\d{2})/.exec(start) || ['', 'WiSe', '26'];
+    var istWi = m[1] === 'WiSe', j = Number(m[2]), out = [];
+    for (var i = 0; i < n; i++) {
+      out.push(istWi ? 'WiSe ' + j + '/' + (j + 1) : 'SoSe ' + j);
+      if (istWi) { istWi = false; j += 1; } else { istWi = true; }
+    }
+    return out;
+  }
+  var SEMESTER = semesterListe(SG.start, 8);
+  function semesterVon(d) {
+    var mo = d.getMonth() + 1, j = d.getFullYear() % 100;
+    if (mo >= 10) return 'WiSe ' + j + '/' + (j + 1);
+    if (mo <= 3) return 'WiSe ' + (j - 1) + '/' + j;
+    return 'SoSe ' + j;
+  }
+  function saison(sem) { return String(sem).slice(0, 4); }
+  function fachsem(sem) { var i = SEMESTER.indexOf(sem); return i < 0 ? 0 : i + 1; }
+  function aktSem() { var s = semesterVon(new Date()); return SEMESTER.indexOf(s) >= 0 ? s : SEMESTER[0]; }
+  function naechstesSem() { return SEMESTER[SEMESTER.indexOf(aktSem()) + 1] || SEMESTER[SEMESTER.length - 1]; }
+  function semVorher(a, b) { return SEMESTER.indexOf(a) < SEMESTER.indexOf(b); }
+
+  // ================= Zustand =================
+  // Version 2: belegungen (Veranstaltungen), modulErgebnis (Prüfung/Note je Modul), termine, aufgaben, nachweise, schwerpunkt
+  function leer() { return { version: 2, farbe: 'Lila', schwerpunkt: '', belegungen: [], modulErgebnis: {}, termine: [], aufgaben: [], nachweise: { info: false, rettungsschwimmer: false, expose: false } }; }
+  function termineNorm(arr) {
+    return Array.isArray(arr) ? arr.map(function (t) { return { tag: Math.max(0, Math.min(4, Number(t.tag) || 0)), von: t.von || '08:00', bis: t.bis || '10:00', rhythmus: ['woechentlich', 'gerade', 'ungerade'].indexOf(t.rhythmus) >= 0 ? t.rhythmus : 'woechentlich' }; }) : [];
+  }
+  function farbeOk(f) { return /^#[0-9A-Fa-f]{6}$/.test(f || '') ? f : KURSFARBEN[0]; }
+  function modulOk(id) { return MOD[id] ? id : 'SONST'; }
+  function normalisieren(s) {
+    var n = leer();
+    if (!s || typeof s !== 'object') return n;
+    n.farbe = PALETTEN[s.farbe] ? s.farbe : 'Lila';
+    if (s.version === 2 || Array.isArray(s.belegungen)) {
+      n.schwerpunkt = s.schwerpunkt === 'TD' || s.schwerpunkt === 'SM' ? s.schwerpunkt : '';
+      n.belegungen = (s.belegungen || []).filter(function (b) { return b && b.id; }).map(function (b) {
+        return { id: String(b.id), lvId: LV[b.lvId] ? b.lvId : '', modulId: modulOk(b.modulId), titel: String(b.titel || 'Veranstaltung'), cp: Number(b.cp) || 0, semester: SEMESTER.indexOf(b.semester) >= 0 ? b.semester : SEMESTER[0], status: BELEG_STATUS[b.status] ? b.status : 'geplant', farbe: farbeOk(b.farbe), termine: termineNorm(b.termine), moodle: /^https?:\/\//i.test(b.moodle || '') ? b.moodle : '', notiz: String(b.notiz || '') };
+      });
+      var me = s.modulErgebnis && typeof s.modulErgebnis === 'object' ? s.modulErgebnis : {};
+      Object.keys(me).forEach(function (k) { if (!MOD[k]) return; var r = me[k] || {}; var note = Number(r.note); n.modulErgebnis[k] = { pruefung: PRUEF_STATUS[r.pruefung] ? r.pruefung : 'offen', note: note >= 1 && note <= 5 ? Math.round(note * 10) / 10 : null }; });
+      n.termine = (s.termine || []).filter(function (t) { return t && t.id && /^\d{4}-\d{2}-\d{2}$/.test(t.datum || ''); }).map(function (t) { return { id: String(t.id), titel: String(t.titel || ''), datum: t.datum, zeit: /^\d{2}:\d{2}$/.test(t.zeit || '') ? t.zeit : '', typ: TERMIN_TYP[t.typ] ? t.typ : 'termin', modulId: MOD[t.modulId] ? t.modulId : '', erledigt: !!t.erledigt }; });
+      n.aufgaben = (s.aufgaben || []).filter(function (t) { return t && t.id; }).map(function (t) { return { id: String(t.id), text: String(t.text || ''), erledigt: !!t.erledigt }; });
+      var nw = s.nachweise || {};
+      Object.keys(n.nachweise).forEach(function (k) { n.nachweise[k] = !!nw[k]; });
+      return n;
+    }
+    // Migration aus Version 1 (kurse/todos/checks)
+    var BEREICH_ALT = { SP: 'SONST', BA: 'M20' };
+    n.belegungen = (Array.isArray(s.kurse) ? s.kurse : []).filter(function (k) { return k && k.id; }).map(function (k) {
+      var lvId = LV[k.katalog] ? k.katalog : '';
+      var modulId = lvId ? LV[lvId].modul : modulOk(BEREICH_ALT[k.bereich] || k.bereich);
+      return { id: String(k.id), lvId: lvId, modulId: modulId, titel: String(k.titel || 'Veranstaltung'), cp: Number(k.cp) || 0, semester: SEMESTER.indexOf(k.semester) >= 0 ? k.semester : SEMESTER[0], status: BELEG_STATUS[k.status] ? k.status : 'geplant', farbe: farbeOk(k.farbe), termine: termineNorm(k.termine), moodle: '', notiz: String(k.notiz || '') };
+    });
+    n.aufgaben = (Array.isArray(s.todos) ? s.todos : []).filter(function (t) { return t && t.id; }).map(function (t) { return { id: String(t.id), text: String(t.text || ''), erledigt: !!t.erledigt }; });
+    n.nachweise.info = !!(s.checks && s.checks.info);
+    n._migriert = true;
+    return n;
+  }
+
+  var state = leer();
+  var db = null, ladeFertig = false, ausstehend = false;
+  var LS_KEY = 'studicockpit-cache-v2', LS_ALT = 'studicockpit-cache-v1';
+  try {
+    var c = localStorage.getItem(LS_KEY) || localStorage.getItem(LS_ALT);
+    if (c) { state = normalisieren(JSON.parse(c)); delete state._migriert; }
+  } catch (e) { /* kein lokaler Speicher */ }
+
+  // UI-Zustand (nicht gespeichert)
+  var ansicht = 'dashboard', wochenOffset = 0, geplanteZeigen = false;
+  var studiumTab = 'module', modulFilter = 'alle', offenesModul = null, zielSemester = null;
+  var entwurf = null, loeschBestaetigen = false, terminEntwurf = null, loeschId = null, archivOffen = false;
+
+  function syncAnzeige(text, art) {
+    var el = document.getElementById('sync');
+    el.className = 'sync' + (art ? ' ' + art : '');
+    el.querySelector('span').textContent = text;
+  }
+  var speicherTimer = null;
+  function speichern() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* egal */ }
+    if (!db) { syncAnzeige('Auf diesem Gerät gespeichert', 'on'); return; }
+    ausstehend = true;
+    syncAnzeige('Speichere …', '');
+    clearTimeout(speicherTimer);
+    speicherTimer = setTimeout(function () {
+      db.doc('app/state').set(JSON.parse(JSON.stringify(state))).then(function () {
+        ausstehend = false; syncAnzeige('Gespeichert · auf allen Geräten', 'on');
+      }).catch(function (e) {
+        ausstehend = false;
+        syncAnzeige(e && e.code === 'quota_exceeded' ? 'Speicher voll – bitte Claude Bescheid geben' : 'Speichern fehlgeschlagen – nochmal versuchen', 'warn');
+      });
+    }, 350);
+  }
+  function lokalModus() {
+    syncAnzeige('Auf diesem Gerät gespeichert', 'on');
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* egal */ }
+    ladeFertig = true; render();
+  }
+  function verbinden() {
+    if (!window.claude || typeof window.claude.use !== 'function') { lokalModus(); return; }
+    window.claude.use('db').then(function (d) {
+      if (!d) { syncAnzeige('Nur auf diesem Gerät gespeichert', 'warn'); ladeFertig = true; render(); return; }
+      db = d;
+      db.doc('app/state').onSnapshot(function (snap) {
+        ladeFertig = true;
+        if (snap.exists && !snap.metadata.hasPendingWrites && !ausstehend) {
+          state = normalisieren(JSON.parse(JSON.stringify(snap.data())));
+          if (state._migriert) { delete state._migriert; speichern(); }
+          try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* egal */ }
+        }
+        if (!ausstehend) syncAnzeige('Synchronisiert · alle Geräte', 'on');
+        render();
+      }, function () { syncAnzeige('Verbindung verloren – Änderungen nur lokal', 'warn'); });
+    });
+  }
+
+  // ================= Hilfen =================
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function neueId(p) { return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function minuten(t) { var p = String(t).split(':'); return (Number(p[0]) || 0) * 60 + (Number(p[1]) || 0); }
+  function fmtCP(n) { return (Math.round(n * 10) / 10).toString().replace('.', ','); }
+  function fmtNote(n) { return n == null ? '–' : n.toFixed(1).replace('.', ','); }
+  function montagVon(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; }
+  function isoKW(d) {
+    var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    var tag = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - tag);
+    return Math.ceil(((t - new Date(Date.UTC(t.getUTCFullYear(), 0, 1))) / 86400000 + 1) / 7);
+  }
+  function passtRhythmus(r, kw) { return r === 'woechentlich' || (r === 'gerade' && kw % 2 === 0) || (r === 'ungerade' && kw % 2 === 1); }
+  function rhythmusText(r) { return r === 'gerade' ? '14-tägig, gerade KW' : r === 'ungerade' ? '14-tägig, ungerade KW' : 'wöchentlich'; }
+  function datumKurz(d) { return d.getDate() + '.' + (d.getMonth() + 1) + '.'; }
+  function isoDatum(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function ausIso(s) { var p = s.split('-'); return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])); }
+  function heute0() { var h = new Date(); h.setHours(0, 0, 0, 0); return h; }
+  function tageBis(d) { return Math.round((d - heute0()) / 86400000); }
+  function relativ(t) { return t === 0 ? 'heute' : t === 1 ? 'morgen' : t === -1 ? 'gestern' : t > 0 ? 'in ' + t + ' Tagen' : 'vor ' + (-t) + ' Tagen'; }
+  function modulKurz(id) {
+    var m = MOD[id]; if (!m) return 'zählt nicht';
+    if (m.bereich === 'OPT' || m.bereich === 'PRAK') return m.name;
+    if (m.id === 'M20') return 'Bachelorarbeit';
+    return 'Modul ' + m.nr + (m.sp ? ' (' + (m.sp === 'TD' ? 'Training & Diagnostik' : 'Sportmanagement') + ')' : '');
+  }
+  function modulTitel(id) { var m = MOD[id]; return m ? (m.bereich === 'OPT' || m.bereich === 'PRAK' ? m.name : (m.id === 'M20' ? 'Modul 20 · ' : 'Modul ' + m.nr + ' · ') + m.name) : 'Zählt nicht'; }
+
+  // ================= Berechnungen =================
+  function spAktiv(m) { return !m.sp || !state.schwerpunkt || m.sp === state.schwerpunkt; }
+  function pflichtModule() {
+    // Module, die für den Abschluss zählen (Schwerpunkt nur der gewählte; ohne Wahl: TD als Platzhalter für die Anzahl)
+    var sp = state.schwerpunkt || 'TD';
+    return SG.module.filter(function (m) { return !m.sp || m.sp === sp; });
+  }
+  function sp19() { return (state.schwerpunkt || 'TD') + '19'; }
+  function belegungenVon(modulId) { return state.belegungen.filter(function (b) { return b.modulId === modulId; }); }
+  function ergebnis(modulId) { return state.modulErgebnis[modulId] || { pruefung: 'offen', note: null }; }
+  function modulCP(modulId) {
+    var m = MOD[modulId], r = { bestanden: 0, laeuft: 0, geplant: 0 };
+    if (!m) return r;
+    if (m.cpDurchModul) { if (ergebnis(modulId).pruefung === 'bestanden') r.bestanden = m.cp; }
+    belegungenVon(modulId).forEach(function (b) { r[b.status] += b.cp; });
+    r.bestanden = Math.min(m.cp, r.bestanden);
+    r.laeuft = Math.min(m.cp - r.bestanden, r.laeuft);
+    r.geplant = Math.min(m.cp - r.bestanden - r.laeuft, r.geplant);
+    return r;
+  }
+  function modulStatus(modulId) {
+    var m = MOD[modulId], c = modulCP(modulId), e = ergebnis(modulId);
+    var cpVoll = c.bestanden >= m.cp - 0.001;
+    var pruefungOk = m.cpDurchModul || !m.pruefung || e.pruefung === 'bestanden';
+    if (cpVoll && pruefungOk) return 'abgeschlossen';
+    if (c.bestanden > 0 || c.laeuft > 0 || e.pruefung === 'angemeldet' || e.pruefung === 'bestanden') return 'inBearbeitung';
+    if (c.geplant > 0) return 'geplant';
+    return 'offen';
+  }
+  function bereichCP(bereichId) {
+    var r = { bestanden: 0, laeuft: 0, geplant: 0 };
+    pflichtModule().forEach(function (m) {
+      if (m.bereich !== bereichId) return;
+      if (m.sp && !state.schwerpunkt) {
+        // ohne Schwerpunktwahl: Belegungen beider Schwerpunkte zählen, aber höchstens die Bereichs-CP
+        ['TD', 'SM'].forEach(function (s) { var c = modulCP(s + m.nr); r.bestanden += c.bestanden; r.laeuft += c.laeuft; r.geplant += c.geplant; });
+        return;
+      }
+      var c = modulCP(m.id); r.bestanden += c.bestanden; r.laeuft += c.laeuft; r.geplant += c.geplant;
+    });
+    var ziel = BEREICH[bereichId].cp;
+    r.bestanden = Math.min(ziel, r.bestanden); r.laeuft = Math.min(ziel - r.bestanden, r.laeuft); r.geplant = Math.min(ziel - r.bestanden - r.laeuft, r.geplant);
+    return r;
+  }
+  function gesamtCP() {
+    var r = { bestanden: 0, laeuft: 0, geplant: 0 };
+    SG.bereiche.forEach(function (b) { var c = bereichCP(b.id); r.bestanden += c.bestanden; r.laeuft += c.laeuft; r.geplant += c.geplant; });
+    return r;
+  }
+  function modulZaehler() {
+    var z = { abgeschlossen: 0, inBearbeitung: 0, geplant: 0, offen: 0, gesamt: 0 };
+    pflichtModule().forEach(function (m) { z[modulStatus(m.id)]++; z.gesamt++; });
+    return z;
+  }
+  function lvStatus(lvId) {
+    var best = null, rang = { geplant: 1, laeuft: 2, bestanden: 3 };
+    state.belegungen.forEach(function (b) { if (b.lvId === lvId && (!best || rang[b.status] > rang[best.status])) best = b; });
+    return best;
+  }
+  function lvBestanden(lvId) { var b = lvStatus(lvId); return !!(b && b.status === 'bestanden'); }
+  function notenSchnitt() {
+    var sum = 0, w = 0, n = 0;
+    pflichtModule().forEach(function (m) { var e = ergebnis(m.id); if (m.benotet && m.gewicht && e.pruefung === 'bestanden' && e.note) { sum += e.note * m.gewicht; w += m.gewicht; n++; } });
+    return { schnitt: w ? Math.floor(sum / w * 10) / 10 : null, anzahl: n };
+  }
+
+  // Zulassung zum Schwerpunkt (PO § 4 Abs. 6)
+  function zulassungSP(zielSem) {
+    var g = gesamtCP(), fs = fachsem(zielSem || aktSem());
+    var flB = lvStatus('m1-fl'), gvB = lvStatus('m1-gv');
+    var punkte = [
+      { text: 'Mindestens 45 CP', ok: g.bestanden >= 45, detail: fmtCP(g.bestanden) + ' von 45 CP' + (g.laeuft ? ' · ' + fmtCP(g.laeuft) + ' laufen' : '') },
+      { text: 'Informationsveranstaltung zu den Schwerpunkten', ok: state.nachweise.info, nachweis: 'info' },
+      { text: 'Forschendes Lernen und wissenschaftliches Arbeiten', ok: lvBestanden('m1-fl'), detail: flB ? BELEG_STATUS[flB.status] : 'noch nicht belegt' },
+      { text: 'Grundlagen der Vermittlung von Inhalten der Sportwissenschaft', ok: lvBestanden('m1-gv'), detail: gvB ? BELEG_STATUS[gvB.status] : 'noch nicht belegt' },
+      { text: 'Frühestens nach dem 2. Fachsemester', ok: fs >= 3, detail: 'ab ' + SEMESTER[2] }
+    ];
+    return { ok: punkte.every(function (p) { return p.ok; }), punkte: punkte };
+  }
+
+  // Prüft eine Regel; Ergebnis: { art: 'ok'|'fehlt'|'hinweis', text }
+  function pruefeRegel(r, zielSem, lvId) {
+    if (r.typ === 'zulassungSP') {
+      var z = zulassungSP(zielSem);
+      if (z.ok) return { art: 'ok', text: 'Zulassung zum Studienschwerpunkt erfüllt' };
+      var fehlt = z.punkte.filter(function (p) { return !p.ok; }).map(function (p) { return p.text; });
+      return { art: 'fehlt', text: 'Zulassung zum Schwerpunkt fehlt noch: ' + fehlt.join(', ') };
+    }
+    if (r.typ === 'nachLV') {
+      var fehlen = [], laufen = [];
+      r.lv.forEach(function (id) {
+        var b = lvStatus(id);
+        if (b && b.status === 'bestanden') return;
+        if (b && b.status !== 'geplant' && zielSem && semVorher(b.semester, zielSem)) laufen.push(LV[id].titel); else fehlen.push(LV[id].titel);
+      });
+      if (!fehlen.length && !laufen.length) return { art: 'ok', text: (r.lv.length > 1 ? 'Vorlesungen' : '„' + LV[r.lv[0]].titel + '“') + ' bestanden' };
+      if (!fehlen.length) return { art: 'hinweis', text: 'Muss vorher bestanden sein (läuft gerade): ' + laufen.join(', ') };
+      return { art: 'fehlt', text: 'Muss vorher bestanden sein: ' + fehlen.concat(laufen).join(', ') };
+    }
+    if (r.typ === 'parallelLV') {
+      var v = lvStatus(r.lv);
+      var titel = '„' + LV[r.lv].titel + '“';
+      if (v && (v.status === 'bestanden' || !zielSem || !semVorher(zielSem, v.semester))) return { art: 'ok', text: titel + ' ' + (v.status === 'bestanden' ? 'bestanden' : 'belegt (' + v.semester + ')') };
+      var vl = LV[r.lv], s = zielSem || aktSem();
+      var parallelMoeglich = vl.angebot === 'jedes' || vl.angebot === saison(s);
+      if (parallelMoeglich) return { art: 'hinweis', text: 'Nur zusammen mit der Vorlesung ' + titel + ' (frühestens parallel)' };
+      return { art: 'fehlt', text: 'Frühestens parallel zur Vorlesung ' + titel + ', die es nur im ' + (vl.angebot === 'SoSe' ? 'Sommersemester' : 'Wintersemester') + ' gibt' };
+    }
+    if (r.typ === 'hinweisLV') {
+      return lvBestanden(r.lv) ? { art: 'ok', text: '„' + LV[r.lv].titel + '“ bestanden' } : { art: 'hinweis', text: 'Laut Modulhandbuch ist „' + LV[r.lv].titel + '“ vor dem Seminar abzuschließen' };
+    }
+    if (r.typ === 'm2bis4') {
+      var ok = state.belegungen.some(function (b) { return ['M2', 'M3', 'M4'].indexOf(b.modulId) >= 0 && b.status === 'bestanden'; });
+      return ok ? { art: 'ok', text: 'Mindestens eine Sportart aus Modul 2–4 abgeschlossen (für sportartspezifische Vertiefungen muss es genau diese Sportart sein)' } : { art: 'fehlt', text: 'Mindestens eine Sportart bzw. ein Bewegungsfeld aus Modul 2–4 muss abgeschlossen sein' };
+    }
+    if (r.typ === 'modulAbgeschlossen') {
+      var mid = r.modul === 'SP19' ? sp19() : r.modul;
+      return modulStatus(mid) === 'abgeschlossen' ? { art: 'ok', text: modulKurz(mid) + ' abgeschlossen' } : { art: 'fehlt', text: modulKurz(mid) + ' muss abgeschlossen sein' };
+    }
+    if (r.typ === 'spCP') {
+      var sp = bereichCP('SP').bestanden;
+      return sp >= r.cp ? { art: 'ok', text: 'Mindestens ' + r.cp + ' CP im Schwerpunkt' } : { art: 'fehlt', text: 'Mindestens ' + r.cp + ' CP im Schwerpunkt (bisher ' + fmtCP(sp) + ')' };
+    }
+    if (r.typ === 'nachweis') {
+      return state.nachweise[r.id] ? { art: 'ok', text: NACHWEIS[r.id].name } : { art: 'fehlt', text: NACHWEIS[r.id].name + ' fehlt noch', nachweis: r.id };
+    }
+    return { art: 'hinweis', text: 'Unbekannte Regel' };
+  }
+  function modulRegeln(m, zielSem) { return (m.regeln || []).map(function (r) { return pruefeRegel(r, zielSem); }); }
+
+  // Darf eine Veranstaltung in einem Semester belegt werden?
+  function lvPruefen(lv, zielSem) {
+    var m = MOD[lv.modul], gruende = [], s = saison(zielSem);
+    if (lv.angebot === 'WiSe' || lv.angebot === 'SoSe') {
+      gruende.push(lv.angebot === s ? { art: 'ok', text: 'Wird im ' + (s === 'SoSe' ? 'Sommersemester' : 'Wintersemester') + ' angeboten' } : { art: 'fehlt', text: 'Wird nur im ' + (lv.angebot === 'SoSe' ? 'Sommersemester' : 'Wintersemester') + ' angeboten' });
+    } else if (lv.angebot === 'wechselnd') {
+      gruende.push({ art: 'hinweis', text: 'Nur jedes 2. Semester – im Vorlesungsverzeichnis prüfen' });
+    } else if (lv.angebot === 'bedarf') {
+      gruende.push({ art: 'hinweis', text: 'Angebot jedes bzw. jedes 2. Semester – im Vorlesungsverzeichnis prüfen' });
+    }
+    modulRegeln(m, zielSem).forEach(function (g) { gruende.push(g); });
+    if (lv.regel) gruende.push(pruefeRegel(lv.regel, zielSem, lv.id));
+    if (m.sem && fachsem(zielSem) && fachsem(zielSem) < m.sem[0]) gruende.push({ art: 'hinweis', text: 'Empfohlen ab dem ' + m.sem[0] + '. Semester' });
+    return { ok: !gruende.some(function (g) { return g.art === 'fehlt'; }), gruende: gruende };
+  }
+  // Veranstaltungen, die in einem Modul noch gebraucht werden
+  function lvOffen(lv) {
+    var m = MOD[lv.modul], c = modulCP(m.id);
+    if (c.bestanden + c.laeuft + c.geplant >= m.cp - 0.001) return false;
+    if (lv.mehrfach) return true;
+    if (lvStatus(lv.id)) return false;
+    if (m.id === 'M2' && !lv.pflicht) {
+      var wahl = state.belegungen.filter(function (b) { return b.modulId === 'M2' && b.lvId && !LV[b.lvId].pflicht; }).length;
+      if (wahl >= 2) return false;
+    }
+    return true;
+  }
+  function belegbar(zielSem) {
+    var liste = [];
+    pflichtModule().forEach(function (m) {
+      if (m.sp && !state.schwerpunkt) return;
+      m.lv.forEach(function (lv) {
+        if (!lvOffen(lv)) return;
+        var p = lvPruefen(lv, zielSem);
+        var rang = (lv.angebot === saison(zielSem) ? 0 : 2) + (lv.pflicht || /Schwerpunkt/.test(lv.hinweis || '') ? 0 : 1) + (lv.regel && lv.regel.typ === 'parallelLV' ? 1 : 0);
+        liste.push({ lv: lv, p: p, rang: rang });
+      });
+    });
+    liste.sort(function (a, b) { return a.rang - b.rang || (Number(MOD[a.lv.modul].nr) || 99) - (Number(MOD[b.lv.modul].nr) || 99); });
+    return liste;
+  }
+
+  // ================= Bausteine =================
+  function balken(s, ziel) {
+    var w = function (x) { return ziel ? Math.min(100, x / ziel * 100) : 0; };
+    var b = w(s.bestanden), l = Math.min(100 - b, w(s.laeuft)), g = Math.min(100 - b - l, w(s.geplant || 0));
+    return '<div class="balken" role="img" aria-label="' + fmtCP(s.bestanden) + ' bestanden, ' + fmtCP(s.laeuft) + ' laufen, ' + fmtCP(s.geplant || 0) + ' geplant von ' + fmtCP(ziel) + ' CP"><i class="b" style="width:' + b + '%"></i><i class="l" style="width:' + l + '%"></i><i class="g" style="width:' + g + '%"></i></div>';
+  }
+  function legende(mitGeplant) { return '<div class="legende"><span><i style="background:var(--accent)"></i>bestanden</span><span><i style="background:var(--accent2)"></i>läuft</span>' + (mitGeplant ? '<span><i style="background:var(--accent-line)"></i>geplant</span>' : '') + '</div>'; }
+  function regelZeile(g) {
+    var s = g.art === 'ok' ? '✓' : g.art === 'fehlt' ? '✕' : '!';
+    var label = g.art === 'ok' ? 'Erfüllt: ' : g.art === 'fehlt' ? 'Fehlt: ' : 'Hinweis: ';
+    return '<div class="regel ' + g.art + '"><span class="s" aria-hidden="true">' + s + '</span><span><span class="sr">' + label + '</span>' + esc(g.text) + '</span></div>';
+  }
+  function farbAuswahl() {
+    return '<div class="farben" role="group" aria-label="Akzentfarbe">' + Object.keys(PALETTEN).map(function (n) {
+      return '<button type="button" data-action="farbe" data-farbe="' + n + '" aria-pressed="' + (state.farbe === n) + '" aria-label="' + n + '" title="' + n + '"><span style="background:' + PALETTEN[n].accent + '"></span></button>';
+    }).join('') + '</div>';
+  }
+  function farbeAnwenden() {
+    var p = PALETTEN[state.farbe] || PALETTEN.Lila, r = document.documentElement.style;
+    r.setProperty('--accent', p.accent); r.setProperty('--accent-hi', p.hi); r.setProperty('--accent-line', p.line); r.setProperty('--accent-bg', p.bg); r.setProperty('--accent2', p.a2);
+  }
+  function chip(art, text) { return '<span class="chip ' + art + '">' + esc(text) + '</span>'; }
+
+  // ================= Termine (Kurse & Prüfungen) =================
+  function naechsteKursTermine(n, tage) {
+    var jetzt = new Date(), liste = [];
+    for (var i = 0; i < (tage || 15); i++) {
+      var d = new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate() + i);
+      var wt = (d.getDay() + 6) % 7; if (wt > 4) continue;
+      var kw = isoKW(d);
+      state.belegungen.forEach(function (k) {
+        if (k.status !== 'laeuft') return;
+        k.termine.forEach(function (t) {
+          if (t.tag !== wt || !passtRhythmus(t.rhythmus, kw)) return;
+          var ende = new Date(d); ende.setMinutes(minuten(t.bis));
+          if (ende < jetzt) return;
+          var start = new Date(d); start.setMinutes(minuten(t.von));
+          liste.push({ k: k, t: t, start: start });
+        });
+      });
+    }
+    liste.sort(function (a, b) { return a.start - b.start; });
+    return liste.slice(0, n);
+  }
+  function tagLabel(d) { var t = tageBis(new Date(d.getFullYear(), d.getMonth(), d.getDate())); return t === 0 ? 'Heute' : t === 1 ? 'Morgen' : TAGE[(d.getDay() + 6) % 7] + ' ' + datumKurz(d); }
+  // Prüfungsfristen nach PO § 12: Anmeldung spätestens 2 Wochen vorher, Abmeldung bis 7 Tage vorher
+  function fristenVon(t) {
+    if (t.typ !== 'pruefung') return [];
+    var d = ausIso(t.datum), an = new Date(d), ab = new Date(d);
+    an.setDate(an.getDate() - 14); ab.setDate(ab.getDate() - 7);
+    return [{ titel: 'Anmeldung bis', datum: an }, { titel: 'Abmeldung ohne Gründe bis', datum: ab }];
+  }
+  function anstehend(tage) {
+    var out = [];
+    state.termine.forEach(function (t) {
+      if (t.erledigt) return;
+      var d = ausIso(t.datum), diff = tageBis(d);
+      if (diff >= 0 && diff <= tage) out.push({ art: 'termin', t: t, datum: d, diff: diff });
+      fristenVon(t).forEach(function (f) { var fd = tageBis(f.datum); if (fd >= 0 && fd <= tage) out.push({ art: 'frist', t: t, titel: f.titel, datum: f.datum, diff: fd }); });
+    });
+    out.sort(function (a, b) { return a.datum - b.datum; });
+    return out;
+  }
+
+  // ================= Dashboard =================
+  function dashboard() {
+    var g = gesamtCP(), z = modulZaehler(), sem = aktSem(), fs = fachsem(sem);
+    var pct = Math.round(g.bestanden / SG.gesamtCP * 1000) / 10;
+    var pctNach = Math.round((g.bestanden + g.laeuft) / SG.gesamtCP * 100);
+    var C = 2 * Math.PI * 78, d1 = C * g.bestanden / SG.gesamtCP, d2 = C * g.laeuft / SG.gesamtCP;
+    var h = '<header class="kopf"><div><p>' + esc(sem) + ' · ' + fs + '. Fachsemester von ' + SG.regelstudienzeit + ' · B. Sc. Sportwissenschaft (PO 2025)</p><h1>Hey Gideon, weiter geht’s.</h1></div><div class="aktionen">' + farbAuswahl() + '<button type="button" class="btn primaer" data-action="kurs-neu">+ Veranstaltung</button></div></header>';
+
+    // Fortschritt
+    h += '<div class="reihe">';
+    h += '<section class="karte" style="flex:3 1 520px" aria-labelledby="h-fort"><div class="karte-kopf"><h2 id="h-fort">Dein Studienfortschritt</h2>' + legende(false) + '</div><div class="hero">';
+    h += '<svg role="img" aria-label="' + String(pct).replace('.', ',') + ' Prozent des Studiums geschafft, ' + fmtCP(g.laeuft) + ' CP laufen" width="190" height="190" viewBox="0 0 190 190">';
+    h += '<circle cx="95" cy="95" r="78" fill="none" stroke="var(--line)" stroke-width="16"/>';
+    if (d2 > 0) h += '<circle cx="95" cy="95" r="78" fill="none" stroke="var(--accent2)" stroke-width="16" stroke-dasharray="' + d2 + ' ' + (C - d2) + '" stroke-dashoffset="' + (-d1) + '" transform="rotate(-90 95 95)"/>';
+    if (d1 > 0) h += '<circle cx="95" cy="95" r="78" fill="none" stroke="var(--accent)" stroke-width="16" stroke-dasharray="' + d1 + ' ' + (C - d1) + '" transform="rotate(-90 95 95)"/>';
+    h += '<text x="95" y="96" text-anchor="middle" fill="var(--fg)" font-family="Space Grotesk, sans-serif" font-size="42" font-weight="700">' + String(Math.round(pct)) + ' %</text>';
+    h += '<text x="95" y="120" text-anchor="middle" fill="var(--muted)" font-family="Inter, sans-serif" font-size="13">geschafft</text></svg>';
+    h += '<div class="hero-text"><div class="stats">';
+    h += '<div class="stat"><b class="num" style="color:var(--accent-hi)">' + fmtCP(g.bestanden) + '</b><span>CP erreicht</span></div>';
+    h += '<div class="stat"><b class="num" style="color:var(--accent2)">' + fmtCP(g.laeuft) + '</b><span>CP laufen</span></div>';
+    h += '<div class="stat"><b class="num">' + fmtCP(SG.gesamtCP - g.bestanden) + '</b><span>CP fehlen</span></div></div>';
+    h += '<p style="margin:0;color:var(--soft)">' + (g.laeuft > 0 ? 'Bestehst du alles, was gerade läuft, bist du nach diesem Semester bei <strong style="color:var(--fg)">' + pctNach + ' %</strong>.' : 'Trag deine laufenden Veranstaltungen ein, dann siehst du, wo du nach dem Semester stehst.') + '</p>';
+    h += '<div class="modulzaehler" aria-label="Module"><span><b>' + z.abgeschlossen + '</b> abgeschlossen</span><span><b>' + z.inBearbeitung + '</b> in Bearbeitung</span><span><b>' + z.geplant + '</b> geplant</span><span><b>' + z.offen + '</b> offen</span></div>';
+    h += '</div></div></section>';
+
+    h += '<section class="karte" style="flex:2 1 300px" aria-labelledby="h-ber"><div class="karte-kopf"><h2 id="h-ber">Nach Bereichen</h2><a href="#studium">Alle Module</a></div>';
+    SG.bereiche.forEach(function (b) {
+      var c = bereichCP(b.id);
+      h += '<div><div class="bereich-kopf"><span>' + esc(b.kurz) + '</span><span class="num">' + fmtCP(c.bestanden) + ' / ' + fmtCP(b.cp) + (c.laeuft ? ' · ' + fmtCP(c.laeuft) + ' laufen' : '') + '</span></div>' + balken(c, b.cp) + '</div>';
+    });
+    h += '</section></div>';
+
+    // Woche, Anstehend, Meilenstein, Aufgaben
+    h += '<div class="reihe">';
+    var kt = naechsteKursTermine(5);
+    h += '<section class="karte" style="flex:1 1 300px" aria-labelledby="h-woche"><div class="karte-kopf"><h2 id="h-woche">Als Nächstes</h2><a href="#stundenplan">Stundenplan</a></div>';
+    if (!kt.length) h += '<div class="leer">Keine Veranstaltungen in den nächsten zwei Wochen.<button type="button" class="btn klein" data-action="kurs-neu">+ Veranstaltung eintragen</button></div>';
+    kt.forEach(function (x) {
+      h += '<button type="button" class="zeile" data-action="kurs-edit" data-id="' + esc(x.k.id) + '"><span class="punkt" style="background:' + esc(x.k.farbe) + '"></span><span class="t"><b>' + esc(x.k.titel) + '</b><small>' + tagLabel(x.start) + ' · ' + esc(x.t.von) + '–' + esc(x.t.bis) + ' Uhr</small></span></button>';
+    });
+    h += '</section>';
+
+    var an = anstehend(60).slice(0, 5);
+    h += '<section class="karte" style="flex:1 1 300px" aria-labelledby="h-an"><div class="karte-kopf"><h2 id="h-an">Prüfungen &amp; Fristen</h2><a href="#termine">Alle</a></div>';
+    if (!an.length) h += '<div class="leer">Nichts in den nächsten 60 Tagen. Trag Prüfungen ein, dann erinnert dich die App an An- und Abmeldung.<button type="button" class="btn klein" data-action="termin-neu" data-typ="pruefung">+ Prüfung eintragen</button></div>';
+    an.forEach(function (x) { h += anstehendZeile(x); });
+    h += '</section>';
+    h += '</div><div class="reihe">';
+    h += meilensteinKarte();
+    h += '<section class="karte" style="flex:1 1 300px" aria-labelledby="h-auf"><h2 id="h-auf">Aufgaben</h2>';
+    if (!state.aufgaben.length) h += '<p class="leise">Keine offenen Aufgaben.</p>';
+    state.aufgaben.forEach(function (t) {
+      h += '<div style="display:flex;align-items:center;gap:6px"><button type="button" class="check ' + (t.erledigt ? 'ja' : '') + '" data-action="aufgabe-toggle" data-id="' + esc(t.id) + '" aria-pressed="' + t.erledigt + '" style="flex:1"><i aria-hidden="true">' + (t.erledigt ? '✓' : '') + '</i><span style="' + (t.erledigt ? 'text-decoration:line-through;color:var(--muted)' : '') + '">' + esc(t.text) + '</span></button><button type="button" class="icon-btn" data-action="aufgabe-del" data-id="' + esc(t.id) + '" aria-label="Aufgabe entfernen" style="font-size:16px;color:var(--muted)">×</button></div>';
+    });
+    h += '<form id="aufgabe-form" style="display:flex;gap:8px"><label for="aufgabe-text" class="sr">Neue Aufgabe</label><input id="aufgabe-text" placeholder="Neue Aufgabe …" autocomplete="off" style="flex:1;min-width:0;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface2);padding:0 12px"><button class="btn" type="submit">Hinzufügen</button></form>';
+    h += '</section></div>';
+
+    h += '<nav class="links" aria-label="Schnellzugriff">';
+    [['Moodle', 'https://moodle.ruhr-uni-bochum.de'], ['eCampus', 'https://ecampus.ruhr-uni-bochum.de'], ['Optionalbereich', 'https://optio.ruhr-uni-bochum.de/'], ['Fakultät Sport', 'https://sport.ruhr-uni-bochum.de/de'], ['Modulhandbuch', 'https://moodle.ruhr-uni-bochum.de/pluginfile.php/3727350/course/section/8099691/BSc-Modulhandbuch_24-08-2026.pdf'], ['Prüfungsordnung', 'https://moodle.ruhr-uni-bochum.de/pluginfile.php/3727350/course/section/8099940/BSc%20PO%202025%20AB-1707.pdf']].forEach(function (l) {
+      h += '<a href="' + l[1] + '" target="_blank" rel="noopener">' + l[0] + '</a>';
+    });
+    h += '</nav>';
+    return h;
+  }
+  function anstehendZeile(x) {
+    var d = x.datum, nah = x.diff <= 7;
+    var titel = x.art === 'frist' ? x.titel + ': ' + x.t.titel : x.t.titel;
+    var info = (x.art === 'frist' ? 'Frist' : TERMIN_TYP[x.t.typ]) + (x.t.modulId ? ' · ' + modulKurz(x.t.modulId) : '') + (x.art === 'termin' && x.t.zeit ? ' · ' + x.t.zeit + ' Uhr' : '');
+    return '<div class="zeile"><span class="datum-box" style="width:46px;height:46px;border-radius:12px' + (x.art === 'frist' ? ';background:var(--surface3);color:' + (nah ? 'var(--warn)' : 'var(--soft)') : '') + '"><b style="font-size:17px">' + d.getDate() + '</b><small>' + MONATE[d.getMonth()] + '</small></span><span class="t"><b>' + esc(titel) + '</b><small>' + esc(info) + '</small></span><span class="chip ' + (nah ? 'warn' : 'offen') + '">' + relativ(x.diff) + '</span></div>';
+  }
+  function meilensteinKarte() {
+    var z = zulassungSP(naechstesSem());
+    if (!z.ok || !state.schwerpunkt) {
+      var g = gesamtCP(), fehlen = Math.max(0, 45 - g.bestanden - g.laeuft);
+      var h = '<section class="karte betont" style="flex:1 1 300px" aria-labelledby="h-ms"><p class="eyebrow">Nächster Meilenstein</p><h2 id="h-ms">Zulassung zum Schwerpunkt</h2>';
+      h += '<p class="leise">Frühestens zum ' + SEMESTER[2] + ' (PO § 4 Abs. 6).' + (fehlen > 0 ? ' Nach diesem Semester fehlen dir noch <strong style="color:var(--accent-hi)">' + fmtCP(fehlen) + ' CP</strong>.' : '') + '</p>';
+      h += '<div>' + balken({ bestanden: g.bestanden, laeuft: g.laeuft, geplant: 0 }, 45) + '</div><div style="display:flex;flex-direction:column;gap:4px">';
+      zulassungSP(SEMESTER[2]).punkte.forEach(function (p) {
+        var kl = p.ok ? 'ja' : (p.detail && /läuft|geplant/.test(p.detail) ? 'halb' : '');
+        if (p.nachweis) h += '<button type="button" class="check ' + kl + '" data-action="nachweis" data-id="' + p.nachweis + '" aria-pressed="' + p.ok + '"><i aria-hidden="true">' + (p.ok ? '✓' : '') + '</i><span>' + esc(p.text) + ' <small>(antippen zum Abhaken)</small></span></button>';
+        else h += '<div class="check ' + kl + '"><i aria-hidden="true">' + (p.ok ? '✓' : '') + '</i><span>' + esc(p.text) + (p.detail ? ' <small>· ' + esc(p.detail) + '</small>' : '') + '</span></div>';
+      });
+      return h + '</div></section>';
+    }
+    var ba = MOD.M20;
+    var h2 = '<section class="karte betont" style="flex:1 1 300px" aria-labelledby="h-ms"><p class="eyebrow">Nächster Meilenstein</p><h2 id="h-ms">Zulassung zur Bachelorarbeit</h2><div style="display:flex;flex-direction:column;gap:6px">';
+    modulRegeln(ba).forEach(function (g) { h2 += regelZeile(g); });
+    return h2 + '</div></section>';
+  }
+
+  // ================= Studium (Verlauf & Module) =================
+  function studium() {
+    var g = gesamtCP(), ns = notenSchnitt();
+    var h = '<header class="kopf"><div><p>B. Sc. Sportwissenschaft · PO 2025 · ' + SG.gesamtCP + ' CP in ' + SG.regelstudienzeit + ' Semestern</p><h1>Dein Studium</h1></div><div class="aktionen"><div class="segment" role="group" aria-label="Ansicht">';
+    [['module', 'Module'], ['verlauf', 'Semesterplan'], ['naechstes', 'Was kann ich belegen?']].forEach(function (t) { h += '<button type="button" data-action="studium-tab" data-tab="' + t[0] + '" aria-pressed="' + (studiumTab === t[0]) + '">' + t[1] + '</button>'; });
+    h += '</div></div></header>';
+
+    h += '<div class="bereich-grid">';
+    h += '<div class="bereich-karte" style="background:var(--accent-bg)"><small>Gesamt</small><b class="num">' + fmtCP(g.bestanden) + ' <span style="font-size:14px;color:var(--muted)">/ ' + SG.gesamtCP + ' CP</span></b>' + balken(g, SG.gesamtCP) + '<small>' + Math.round(g.bestanden / SG.gesamtCP * 100) + ' % geschafft</small></div>';
+    SG.bereiche.forEach(function (b) {
+      var c = bereichCP(b.id);
+      h += '<div class="bereich-karte"><small>' + esc(b.kurz) + '</small><b class="num">' + fmtCP(c.bestanden) + ' <span style="font-size:14px;color:var(--muted)">/ ' + fmtCP(b.cp) + '</span></b>' + balken(c, b.cp) + '<small>' + (c.laeuft ? fmtCP(c.laeuft) + ' CP laufen' : c.geplant ? fmtCP(c.geplant) + ' CP geplant' : '&nbsp;') + '</small></div>';
+    });
+    h += '<div class="bereich-karte"><small>Notenschnitt (vorläufig)</small><b class="num">' + fmtNote(ns.schnitt) + '</b><small>' + (ns.anzahl ? 'aus ' + ns.anzahl + (ns.anzahl === 1 ? ' Modulnote' : ' Modulnoten') + ', gewichtet nach PO § 16' : 'noch keine benoteten Module') + '</small></div>';
+    h += '</div>';
+
+    if (studiumTab === 'verlauf') h += semesterplan();
+    else if (studiumTab === 'naechstes') h += belegbarAnsicht();
+    else h += modulListe();
+    return h;
+  }
+
+  function modulListe() {
+    var h = '<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:center"><div class="filter" role="group" aria-label="Module filtern">';
+    [['alle', 'Alle'], ['offen', 'Offen'], ['geplant', 'Geplant'], ['inBearbeitung', 'In Bearbeitung'], ['abgeschlossen', 'Abgeschlossen']].forEach(function (f) { h += '<button type="button" data-action="filter" data-f="' + f[0] + '" aria-pressed="' + (modulFilter === f[0]) + '">' + f[1] + '</button>'; });
+    h += '</div>' + legende(true) + '</div>';
+
+    function gruppe(titel, cpText, module, kopfExtra) {
+      var sichtbar = module.filter(function (m) { return modulFilter === 'alle' || modulStatus(m.id) === modulFilter; });
+      var s = '<section class="gruppe" aria-label="' + esc(titel) + '"><div class="gruppe-kopf"><h2>' + esc(titel) + '</h2><span class="leise">' + cpText + '</span></div>' + (kopfExtra || '');
+      if (!sichtbar.length) s += '<p class="leise" style="padding:0 4px 8px">Keine Module mit diesem Status.</p>';
+      sichtbar.forEach(function (m) { s += modulZeile(m); });
+      return s + '</section>';
+    }
+    var grund = SG.module.filter(function (m) { return m.bereich === 'GRUND'; });
+    var gc = bereichCP('GRUND');
+    h += gruppe('Schwerpunktübergreifende Module', fmtCP(gc.bestanden) + ' / 95 CP · Pflicht', grund);
+
+    var spKopf = '<div class="karte" style="padding:16px;margin-bottom:6px"><div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between"><span style="font-size:14px;color:var(--soft)">' + (state.schwerpunkt ? 'Gewählt: <strong style="color:var(--fg)">' + esc(SP_NAME[state.schwerpunkt]) + '</strong>' : 'Noch nicht gewählt – beide Schwerpunkte zum Vergleich:') + '</span><div class="segment" role="group" aria-label="Studienschwerpunkt">';
+    [['', 'Noch offen'], ['TD', 'Training & Diagnostik'], ['SM', 'Sportmanagement']].forEach(function (s) { spKopf += '<button type="button" data-action="schwerpunkt" data-sp="' + s[0] + '" aria-pressed="' + (state.schwerpunkt === s[0]) + '">' + s[1] + '</button>'; });
+    spKopf += '</div></div>';
+    var z = zulassungSP(SEMESTER[2]);
+    spKopf += '<p class="leise" style="margin-top:10px">Zulassung ' + (z.ok ? 'erfüllt.' : 'noch nicht erfüllt – siehe Meilenstein im Dashboard.') + ' Beide Schwerpunkte haben 57 CP in den Modulen 14–19.</p></div>';
+    var spModule = SG.module.filter(function (m) { return m.bereich === 'SP' && (!state.schwerpunkt || m.sp === state.schwerpunkt); });
+    if (!state.schwerpunkt) spModule.sort(function (a, b) { return Number(a.nr) - Number(b.nr) || (a.sp < b.sp ? -1 : 1); });
+    var sc = bereichCP('SP');
+    h += gruppe('Studienschwerpunkt', fmtCP(sc.bestanden) + ' / 57 CP · ab ' + SEMESTER[2], spModule, spKopf);
+    h += gruppe('Weitere Bereiche', 'Optionalbereich, Praktikum, Bachelorarbeit', [MOD.OPT, MOD.PRAK, MOD.M20]);
+    return h;
+  }
+
+  function modulZeile(m) {
+    var st = modulStatus(m.id), c = modulCP(m.id), offen = offenesModul === m.id;
+    var nr = m.bereich === 'OPT' ? 'OB' : m.bereich === 'PRAK' ? 'BP' : m.nr;
+    var spTag = m.sp && !state.schwerpunkt ? '<span class="chip offen" style="margin-left:6px">' + (m.sp === 'TD' ? 'T&amp;D' : 'SM') + '</span>' : '';
+    var h = '<div class="modul' + (offen ? ' offen-detail' : '') + '"><button type="button" data-action="modul" data-m="' + m.id + '" aria-expanded="' + offen + '"><span class="nr">' + esc(nr) + '</span><span class="mitte"><span class="oben"><b>' + esc(m.name) + spTag + '</b><span class="num">' + fmtCP(c.bestanden) + ' / ' + fmtCP(m.cp) + ' CP</span></span>' + balken(c, m.cp) + '</span>' + chip(st, MODUL_STATUS[st]) + '</button>';
+    if (offen) h += modulDetail(m);
+    return h + '</div>';
+  }
+
+  function modulDetail(m) {
+    var e = ergebnis(m.id), ziel = naechstesSem();
+    var h = '<div class="modul-detail">';
+    if (m.hinweis) h += regelZeile({ art: 'hinweis', text: m.hinweis });
+    h += '<div class="fakten">';
+    var fakten = [['Credit Points', fmtCP(m.cp) + ' CP'], ['Semester (Empfehlung)', m.sem ? m.sem[0] + '.–' + m.sem[1] + '. Semester' : 'nicht angegeben'], ['Dauer', m.dauer || 'nicht angegeben'], ['Angebot', m.angebot || 'nicht angegeben'], ['Prüfung', m.pruefung || (m.bereich === 'OPT' || m.bereich === 'PRAK' ? 'keine Modulprüfung in der PO genannt' : 'nicht angegeben')], ['Note', m.benotet ? (m.gewicht ? 'zählt ' + (m.gewicht < 0.05 ? '1/30' : m.gewicht < 0.09 ? '1/12' : '10 %') + ' zur Endnote' : 'benotet') : 'unbenotet, zählt nicht zur Endnote']];
+    if (m.sp) fakten.unshift(['Schwerpunkt', SP_NAME[m.sp]]);
+    fakten.forEach(function (f) { h += '<div class="fakt"><span>' + esc(f[0]) + '</span><b>' + esc(f[1]) + '</b></div>'; });
+    h += '</div>';
+    if (m.wahl) h += '<p class="leise" style="font-size:14px;color:var(--soft)">' + esc(m.wahl) + '</p>';
+
+    // Voraussetzungen
+    var regeln = modulRegeln(m, ziel);
+    h += '<div class="unter"><h3>Voraussetzungen</h3><div style="display:flex;flex-direction:column;gap:6px">';
+    if (!regeln.length) h += '<p class="leise">' + esc(m.voraussetzungText || 'keine') + '</p>';
+    else { regeln.forEach(function (g) { h += regelZeile(g); }); h += '<p class="leise" style="margin-top:4px">Laut Modulhandbuch: ' + esc(m.voraussetzungText) + '</p>'; }
+    var nwRegeln = (m.regeln || []).filter(function (r) { return r.typ === 'nachweis'; });
+    if (nwRegeln.length) {
+      h += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">';
+      nwRegeln.forEach(function (r) { var ok = state.nachweise[r.id]; h += '<button type="button" class="btn klein" data-action="nachweis" data-id="' + r.id + '" aria-pressed="' + ok + '">' + (ok ? '✓ ' : '') + esc(NACHWEIS[r.id].name) + (ok ? '' : ' abhaken') + '</button>'; });
+      h += '</div>';
+    }
+    h += '</div></div>';
+
+    // Veranstaltungen
+    var eigene = belegungenVon(m.id);
+    if (m.lv.length || eigene.length) {
+      h += '<div class="unter"><h3>Veranstaltungen</h3><div style="display:flex;flex-direction:column;gap:6px">';
+      m.lv.forEach(function (lv) {
+        var bel = eigene.filter(function (b) { return b.lvId === lv.id; });
+        var p = lvPruefen(lv, ziel);
+        var info = (lv.art === 'V' ? 'Vorlesung' : lv.art === 'S' ? 'Seminar' : lv.art === 'T' ? 'Tutorium' : lv.art === 'P' ? 'Projekt' : lv.art) + (lv.sws ? ' · ' + lv.sws + ' SWS' : '') + ' · ' + (lv.cpOptionen ? lv.cpOptionen.join(' oder ') : fmtCP(lv.cp)) + ' CP · ' + ANGEBOT_TEXT[lv.angebot] + (lv.pflicht ? ' · Pflicht' : '') + (lv.hinweis ? ' · ' + lv.hinweis : '');
+        h += '<div class="lv"><span class="t">' + esc(lv.titel) + '<small>' + esc(info) + '</small>';
+        var probleme = p.gruende.filter(function (g) { return g.art === 'fehlt' && !/Zulassung zum Schwerpunkt fehlt/.test(g.text); });
+        if (!bel.length && probleme.length) h += '<small style="color:var(--bad)">' + esc(probleme[0].text) + '</small>';
+        h += '</span><span class="re">';
+        bel.forEach(function (b) { h += '<button type="button" class="chip ' + b.status + '" data-action="kurs-edit" data-id="' + esc(b.id) + '" style="border:0;cursor:pointer;min-height:30px">' + BELEG_STATUS[b.status] + ' · ' + esc(b.semester) + '</button>'; });
+        if (!bel.length || lv.mehrfach) h += '<button type="button" class="btn klein" data-action="lv-eintragen" data-lv="' + lv.id + '">' + (bel.length ? '+ weitere' : 'Eintragen') + '</button>';
+        h += '</span></div>';
+      });
+      eigene.filter(function (b) { return !b.lvId; }).forEach(function (b) {
+        h += '<div class="lv"><span class="t">' + esc(b.titel) + '<small>' + fmtCP(b.cp) + ' CP · ' + esc(b.semester) + '</small></span><span class="re"><button type="button" class="chip ' + b.status + '" data-action="kurs-edit" data-id="' + esc(b.id) + '" style="border:0;cursor:pointer;min-height:30px">' + BELEG_STATUS[b.status] + '</button></span></div>';
+      });
+      h += '</div></div>';
+    }
+    if (m.bereich === 'OPT') h += '<div><button type="button" class="btn klein" data-action="lv-eintragen" data-modul="OPT">+ Veranstaltung im Optionalbereich</button></div>';
+
+    // Prüfung & Note
+    if (m.pruefung || m.cpDurchModul) {
+      var pid = 'p-' + m.id, nid = 'n-' + m.id;
+      h += '<div class="unter"><h3>' + (m.cpDurchModul && !m.pruefung ? 'Abschluss' : 'Modulprüfung') + '</h3><div class="pruef">';
+      h += '<div class="feld" style="min-width:180px"><label for="' + pid + '">Status</label><select id="' + pid + '" data-erg="pruefung" data-m="' + m.id + '">';
+      Object.keys(PRUEF_STATUS).forEach(function (k) { h += '<option value="' + k + '"' + (e.pruefung === k ? ' selected' : '') + '>' + (m.cpDurchModul && !m.pruefung ? { offen: 'offen', angemeldet: 'läuft', bestanden: 'abgeschlossen', nicht_bestanden: 'nicht bestanden' }[k] : PRUEF_STATUS[k]) + '</option>'; });
+      h += '</select></div>';
+      if (m.benotet) h += '<div class="feld" style="width:120px"><label for="' + nid + '">Note</label><input id="' + nid + '" data-erg="note" data-m="' + m.id + '" type="text" inputmode="decimal" autocomplete="off" placeholder="z. B. 1,7" value="' + (e.note != null ? fmtNote(e.note) : '') + '"></div>';
+      if (m.pruefung) h += '<button type="button" class="btn klein" data-action="termin-neu" data-typ="pruefung" data-m="' + m.id + '" style="margin-bottom:4px">+ Prüfungstermin</button>';
+      h += '</div>';
+      if (m.cpDurchModul && m.id === 'M20') h += '<p class="leise" style="margin-top:6px">Die 8 CP zählen, sobald die Bachelorarbeit samt Kolloquium bestanden ist.</p>';
+      if (m.cpDurchModul && m.id === 'PRAK') h += '<p class="leise" style="margin-top:6px">Die 10 CP zählen, sobald du das Praktikum als abgeschlossen markierst.</p>';
+      if (!m.cpDurchModul && modulCP(m.id).bestanden >= m.cp - 0.001 && e.pruefung !== 'bestanden') h += '<p style="margin:6px 0 0;font-size:13px;color:var(--warn)">Alle CP sind da – es fehlt nur noch die bestandene Modulprüfung.</p>';
+      h += '</div>';
+    }
+    if (m.cpRegel) h += '<p class="leise">CP-Vergabe: ' + esc(m.cpRegel) + '</p>';
+    return h + '</div>';
+  }
+
+  function semesterplan() {
+    var akt = aktSem();
+    var h = '<section aria-label="Semesterplan" style="display:flex;flex-direction:column;gap:12px"><div class="karte-kopf"><h2 style="font-size:18px">Semesterplan</h2>' + legende(true) + '</div><div class="sem-grid">';
+    SEMESTER.forEach(function (s, i) {
+      var bel = state.belegungen.filter(function (b) { return b.semester === s; });
+      var su = { bestanden: 0, laeuft: 0, geplant: 0 };
+      bel.forEach(function (b) { if (b.modulId !== 'SONST') su[b.status] += b.cp; });
+      var tot = su.bestanden + su.laeuft + su.geplant;
+      var marken = [];
+      if (i === 2) marken.push('Frühester Start Schwerpunkt');
+      if (i === SG.regelstudienzeit - 1) marken.push('Ende der Regelstudienzeit');
+      var tag = s === akt ? chip('laeuft', 'jetzt') : semVorher(s, akt) ? chip('offen', 'vorbei') : '';
+      h += '<div class="sem' + (s === akt ? ' jetzt' : '') + '"><div class="sem-kopf"><span>' + (i + 1) + '. Semester · ' + s + '</span>' + tag + '</div><span class="cp num">' + fmtCP(tot) + ' CP</span>' + balken(su, 30) + (tot ? '' : '<small class="leise">' + (i < SG.regelstudienzeit ? 'Ziel: 30 CP' : 'nach der Regelstudienzeit') + '</small>');
+      if (marken.length) h += '<small style="color:var(--accent-hi);font-size:12px">' + esc(marken.join(' · ')) + '</small>';
+      if (bel.length) {
+        h += '<ul>';
+        bel.forEach(function (b) { h += '<li><i style="background:' + esc(b.farbe) + '"></i><span>' + esc(b.titel) + ' · ' + fmtCP(b.cp) + ' CP' + (b.status !== 'laeuft' ? ' · ' + BELEG_STATUS[b.status] : '') + '</span></li>'; });
+        h += '</ul>';
+      }
+      h += '</div>';
+    });
+    h += '</div><p class="leise">Ein Semester sollte etwa 30 CP haben, damit du in 6 Semestern fertig wirst. Geplante Veranstaltungen fügst du im Tab „Was kann ich belegen?“ oder direkt beim Modul hinzu.</p></section>';
+    return h;
+  }
+
+  function belegbarAnsicht() {
+    var ziel = zielSemester && SEMESTER.indexOf(zielSemester) >= 0 ? zielSemester : naechstesSem();
+    var liste = belegbar(ziel), ok = liste.filter(function (x) { return x.p.ok; }), nicht = liste.filter(function (x) { return !x.p.ok; });
+    var schonGeplant = state.belegungen.filter(function (b) { return b.semester === ziel && b.modulId !== 'SONST'; }).reduce(function (a, b) { return a + b.cp; }, 0);
+    var h = '<section class="karte" aria-labelledby="h-bel"><div class="karte-kopf"><h2 id="h-bel">Was kann ich belegen?</h2><div class="feld" style="flex-direction:row;align-items:center;gap:8px"><label for="ziel-sem">Semester</label><select id="ziel-sem" style="width:auto">';
+    SEMESTER.forEach(function (s) { if (!semVorher(s, aktSem())) h += '<option' + (s === ziel ? ' selected' : '') + '>' + s + '</option>'; });
+    h += '</select></div></div>';
+    h += '<p class="leise">Schon eingeplant für ' + esc(ziel) + ': <strong style="color:var(--fg)">' + fmtCP(schonGeplant) + ' CP</strong>. Die Liste berücksichtigt Angebotsrhythmus und Voraussetzungen aus dem Modulhandbuch. Ob ein Kurs wirklich stattfindet, steht erst im Vorlesungsverzeichnis.</p>';
+    if (!state.schwerpunkt) h += regelZeile({ art: 'hinweis', text: 'Schwerpunktmodule erscheinen hier, sobald du im Tab „Module“ einen Schwerpunkt gewählt hast.' });
+    if (!ok.length) h += '<div class="leer">Für dieses Semester ist nichts Weiteres belegbar oder schon alles eingeplant.</div>';
+    ok.forEach(function (x) { h += belegbarZeile(x, ziel, true); });
+    h += '</section>';
+    if (nicht.length) {
+      h += '<section class="karte" aria-labelledby="h-nicht"><h2 id="h-nicht">Noch nicht möglich in ' + esc(ziel) + '</h2><p class="leise">Hier fehlt eine Voraussetzung, oder die Veranstaltung wird in diesem Semester nicht angeboten.</p>';
+      nicht.forEach(function (x) { h += belegbarZeile(x, ziel, false); });
+      h += '</section>';
+    }
+    return h;
+  }
+  function belegbarZeile(x, ziel, ok) {
+    var lv = x.lv, gr = x.p.gruende.filter(function (g) { return g.art !== 'ok'; });
+    var h = '<div class="lv" style="align-items:flex-start"><span class="t"><b style="font-weight:600">' + esc(lv.titel) + '</b><small>' + esc(modulKurz(lv.modul)) + ' · ' + (lv.cpOptionen ? lv.cpOptionen.join(' oder ') : fmtCP(lv.cp)) + ' CP' + (lv.pflicht ? ' · Pflicht' : '') + '</small>';
+    gr.slice(0, 3).forEach(function (g) { h += regelZeile(g); });
+    h += '</span><span class="re">' + (ok ? '<button type="button" class="btn klein" data-action="planen" data-lv="' + lv.id + '" data-sem="' + esc(ziel) + '">Einplanen</button>' : '') + '</span></div>';
+    return h;
+  }
+
+  // ================= Stundenplan =================
+  var START = 8 * 60, ENDE = 20 * 60, PX = 56;
+  function stundenplan() {
+    var heute = new Date(), mo = montagVon(heute); mo.setDate(mo.getDate() + wochenOffset * 7);
+    var fr = new Date(mo); fr.setDate(fr.getDate() + 4);
+    var kw = isoKW(mo), gerade = kw % 2 === 0, heuteIdx = wochenOffset === 0 ? (heute.getDay() + 6) % 7 : -1;
+    var sichtbar = state.belegungen.filter(function (k) { return k.status === 'laeuft' || (geplanteZeigen && k.status === 'geplant'); });
+    var stunden = 0, belegt = [[], [], [], [], []];
+    sichtbar.forEach(function (k) { k.termine.forEach(function (t) { if (passtRhythmus(t.rhythmus, kw) && k.status === 'laeuft') { stunden += (minuten(t.bis) - minuten(t.von)) / 60; belegt[t.tag].push([minuten(t.von), minuten(t.bis)]); } }); });
+
+    var h = '<header class="kopf"><div><p>' + esc(semesterVon(mo)) + ' · ' + fmtCP(stunden) + ' Std. in dieser Woche</p><h1>Stundenplan</h1></div><div class="aktionen">';
+    h += '<div class="wochen-nav"><button type="button" class="icon-btn" data-action="woche" data-d="-1" aria-label="Vorherige Woche">‹</button><div><b>KW ' + kw + ' · ' + datumKurz(mo) + '–' + datumKurz(fr) + '</b><small>' + (gerade ? 'gerade Woche' : 'ungerade Woche') + (wochenOffset ? ' · <button type="button" data-action="woche" data-d="0" style="background:none;border:0;color:var(--accent-hi);cursor:pointer;padding:0;font-size:12px">zu heute</button>' : '') + '</small></div><button type="button" class="icon-btn" data-action="woche" data-d="1" aria-label="Nächste Woche">›</button></div>';
+    h += '<button type="button" class="btn primaer" data-action="kurs-neu">+ Veranstaltung</button></div></header>';
+
+    h += '<div class="reihe" style="align-items:flex-start"><section class="karte" style="flex:999 1 640px;padding:18px" aria-label="Wochenraster"><div class="raster-box"><div class="raster"><div></div>';
+    for (var i = 0; i < 5; i++) { var d = new Date(mo); d.setDate(d.getDate() + i); h += '<div class="tag-kopf' + (i === heuteIdx ? ' heute' : '') + '"><b>' + TAGE[i] + '</b><small>' + datumKurz(d) + (i === heuteIdx ? ' · heute' : '') + '</small></div>'; }
+    var hoehe = (ENDE - START) / 60 * PX;
+    h += '<div class="zeiten" style="height:' + hoehe + 'px" aria-hidden="true">';
+    for (var s = START; s < ENDE; s += 60) h += '<span style="top:' + ((s - START) / 60 * PX) + 'px">' + (s / 60 < 10 ? '0' : '') + (s / 60) + ':00</span>';
+    h += '</div>';
+    for (var tg = 0; tg < 5; tg++) {
+      h += '<div class="spalte' + (tg === heuteIdx ? ' heute' : '') + '" style="height:' + hoehe + 'px">';
+      sichtbar.forEach(function (k) {
+        k.termine.forEach(function (t) {
+          if (t.tag !== tg || !passtRhythmus(t.rhythmus, kw)) return;
+          var a = Math.max(START, minuten(t.von)), b = Math.min(ENDE, minuten(t.bis));
+          if (b <= a) return;
+          var top = (a - START) / 60 * PX, hh = (b - a) / 60 * PX - 6;
+          h += '<button type="button" class="block' + (k.status === 'geplant' ? ' geplant' : '') + '" data-action="kurs-edit" data-id="' + esc(k.id) + '" style="top:' + (top + 3) + 'px;height:' + hh + 'px;background:' + k.farbe + '24;border-color:' + k.farbe + '66"><span class="zeit" style="color:' + esc(k.farbe) + '">' + esc(t.von) + '–' + esc(t.bis) + '</span><b>' + esc(k.titel) + '</b><small>' + esc(modulKurz(k.modulId)) + (t.rhythmus !== 'woechentlich' ? ' · 14-tägig' : '') + (k.status === 'geplant' ? ' · geplant' : '') + '</small></button>';
+        });
+      });
+      if (tg === heuteIdx) { var nm = heute.getHours() * 60 + heute.getMinutes(); if (nm > START && nm < ENDE) h += '<div class="jetzt-linie" style="top:' + ((nm - START) / 60 * PX) + 'px" aria-hidden="true"></div>'; }
+      h += '</div>';
+    }
+    h += '</div></div><label style="display:flex;gap:10px;align-items:center;margin-top:12px;font-size:13px;color:var(--soft);min-height:44px;cursor:pointer"><input type="checkbox" id="geplante" ' + (geplanteZeigen ? 'checked' : '') + ' style="width:18px;height:18px;accent-color:var(--accent)">Geplante Veranstaltungen gestrichelt einblenden</label></section>';
+
+    h += '<div style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:20px">';
+    var laufend = state.belegungen.filter(function (k) { return k.status === 'laeuft'; });
+    var cpLauf = laufend.reduce(function (a, k) { return a + (k.modulId !== 'SONST' ? k.cp : 0); }, 0);
+    h += '<section class="karte" aria-labelledby="h-kurse"><h2 id="h-kurse">Laufende Veranstaltungen · ' + fmtCP(cpLauf) + ' CP</h2>';
+    if (!laufend.length) h += '<div class="leer">Noch nichts eingetragen.<button type="button" class="btn klein" data-action="kurs-neu">+ Erste Veranstaltung</button></div>';
+    laufend.forEach(function (k) {
+      h += '<div class="zeile wrap"><span class="punkt" style="background:' + esc(k.farbe) + '"></span><button type="button" data-action="kurs-edit" data-id="' + esc(k.id) + '" class="t" style="background:none;border:0;padding:0;text-align:left;cursor:pointer;color:var(--fg)"><b>' + esc(k.titel) + '</b><small>' + esc(modulKurz(k.modulId)) + ' · ' + esc(k.termine.map(function (t) { return TAGE[t.tag] + ' ' + t.von + '–' + t.bis + (t.rhythmus !== 'woechentlich' ? ' (14-tägig)' : ''); }).join(' · ') || 'ohne Termin') + '</small></button>' + (k.moodle ? '<a class="btn klein" href="' + esc(k.moodle) + '" target="_blank" rel="noopener">Moodle</a>' : '') + '<span class="num" style="font-family:var(--display);font-weight:600;white-space:nowrap">' + fmtCP(k.cp) + ' CP</span></div>';
+    });
+    h += '</section><section class="karte betont" aria-labelledby="h-frei"><h2 id="h-frei">Freie Zeitfenster</h2><p class="leise">Diese Woche zwischen 8 und 18 Uhr, mindestens eine Stunde.</p>';
+    for (var f = 0; f < 5; f++) { var frei = freieFenster(belegt[f]); h += '<div style="display:flex;gap:12px;font-size:14px"><span style="width:28px;font-family:var(--display);font-weight:600;color:var(--accent)">' + TAGE[f] + '</span><span>' + (frei.length ? frei.join(' · ') : 'voll') + '</span></div>'; }
+    return h + '</section></div></div>';
+  }
+  function freieFenster(busy) {
+    var a = 8 * 60, e = 18 * 60, res = [], cur = a;
+    busy.slice().sort(function (x, y) { return x[0] - y[0]; }).forEach(function (b) { if (b[0] - cur >= 60) res.push([cur, Math.min(b[0], e)]); cur = Math.max(cur, b[1]); });
+    if (e - cur >= 60) res.push([cur, e]);
+    var fmt = function (m) { var hh = Math.floor(m / 60), mm = m % 60; return (hh < 10 ? '0' : '') + hh + (mm ? ':' + (mm < 10 ? '0' : '') + mm : ''); };
+    var out = res.filter(function (r) { return r[1] - r[0] >= 60; }).map(function (r) { return fmt(r[0]) + '–' + fmt(r[1]); });
+    if (out.length === 1 && out[0] === '08–18') return ['ganztags frei'];
+    return out.map(function (x) { return x + ' Uhr'; });
+  }
+
+  // ================= Prüfungen & Termine =================
+  function termine() {
+    var h = '<header class="kopf"><div><p>Prüfungen, Abgaben und wichtige Studientermine</p><h1>Prüfungen &amp; Termine</h1></div><div class="aktionen"><button type="button" class="btn primaer" data-action="termin-neu" data-typ="pruefung">+ Prüfung</button><button type="button" class="btn" data-action="termin-neu" data-typ="termin">+ Termin</button></div></header>';
+    if (terminEntwurf) h += terminForm();
+    var heute = heute0();
+    var kommend = state.termine.filter(function (t) { return !t.erledigt && ausIso(t.datum) >= heute; }).sort(function (a, b) { return a.datum < b.datum ? -1 : 1; });
+    var archiv = state.termine.filter(function (t) { return t.erledigt || ausIso(t.datum) < heute; }).sort(function (a, b) { return a.datum > b.datum ? -1 : 1; });
+    h += '<section class="karte" aria-labelledby="h-kommend"><h2 id="h-kommend">Anstehend</h2>';
+    if (!kommend.length) h += '<div class="leer">Noch keine Termine. Trag Prüfungen mit Datum ein: Die App rechnet die Fristen zur An- und Abmeldung nach PO § 12 aus und zeigt sie im Dashboard.</div>';
+    kommend.forEach(function (t) { h += terminZeile(t, false); });
+    h += '</section>';
+    h += '<section class="karte" aria-labelledby="h-archiv"><div class="karte-kopf"><h2 id="h-archiv">Archiv · ' + archiv.length + '</h2>' + (archiv.length ? '<button type="button" class="btn klein" data-action="archiv" aria-expanded="' + archivOffen + '">' + (archivOffen ? 'Ausblenden' : 'Anzeigen') + '</button>' : '') + '</div>';
+    if (!archiv.length) h += '<p class="leise">Vergangene und erledigte Termine landen hier.</p>';
+    if (archivOffen) archiv.forEach(function (t) { h += terminZeile(t, true); });
+    h += '</section>';
+    h += '<p class="leise">Regeln laut PO § 12 und § 17: Anmeldung spätestens 2 Wochen vor der Prüfung, Abmeldung ohne Angabe von Gründen bis 7 Tage vorher. Modulprüfungen können zweimal wiederholt werden, bestandene Prüfungen nicht.</p>';
+    return h;
+  }
+  function terminZeile(t, archiv) {
+    var d = ausIso(t.datum), diff = tageBis(d);
+    var h = '<div class="termin-zeile"' + (archiv ? ' style="opacity:0.75"' : '') + '><span class="datum-box"><b>' + d.getDate() + '</b><small>' + MONATE[d.getMonth()] + '</small></span><span class="t"><b>' + esc(t.titel) + '</b><small>' + TERMIN_TYP[t.typ] + (t.modulId ? ' · ' + esc(modulKurz(t.modulId)) : '') + ' · ' + ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'][(d.getDay() + 6) % 7];
+    h += (t.zeit ? ', ' + t.zeit + ' Uhr' : '') + (archiv ? '' : ' · ' + relativ(diff)) + '</small>';
+    if (!archiv) fristenVon(t).forEach(function (f) { var fd = tageBis(f.datum); h += '<span class="frist' + (fd >= 0 && fd <= 7 ? ' nah' : '') + '" style="display:block">' + f.titel + ' ' + datumKurz(f.datum) + (fd < 0 ? ' (vorbei)' : ' · ' + relativ(fd)) + '</span>'; });
+    h += '</span><span class="re">';
+    if (!archiv) h += '<button type="button" class="btn klein" data-action="termin-erledigt" data-id="' + esc(t.id) + '">Erledigt</button>';
+    h += '<button type="button" class="btn klein" data-action="termin-edit" data-id="' + esc(t.id) + '">Bearbeiten</button>';
+    h += loeschId === t.id ? '<button type="button" class="btn klein gefahr" data-action="termin-del-ja" data-id="' + esc(t.id) + '">Wirklich löschen</button><button type="button" class="btn klein" data-action="termin-del-nein">Nein</button>' : '<button type="button" class="btn klein" data-action="termin-del" data-id="' + esc(t.id) + '">Löschen</button>';
+    return h + '</span></div>';
+  }
+  function modulOptionen(sel, mitLeer) {
+    var h = mitLeer ? '<option value="">– kein Modul –</option>' : '';
+    var gruppen = [['Schwerpunktübergreifend', SG.module.filter(function (m) { return m.bereich === 'GRUND'; })]];
+    if (state.schwerpunkt) gruppen.push(['Schwerpunkt ' + SP_NAME[state.schwerpunkt], SG.module.filter(function (m) { return m.sp === state.schwerpunkt; })]);
+    else { gruppen.push(['Schwerpunkt Training & Diagnostik', SG.module.filter(function (m) { return m.sp === 'TD'; })]); gruppen.push(['Schwerpunkt Sportmanagement', SG.module.filter(function (m) { return m.sp === 'SM'; })]); }
+    gruppen.push(['Weitere', [MOD.OPT, MOD.PRAK, MOD.M20]]);
+    gruppen.forEach(function (g) { h += '<optgroup label="' + esc(g[0]) + '">'; g[1].forEach(function (m) { h += '<option value="' + m.id + '"' + (sel === m.id ? ' selected' : '') + '>' + esc(modulTitel(m.id)) + '</option>'; }); h += '</optgroup>'; });
+    return h;
+  }
+  function terminForm() {
+    var t = terminEntwurf, neu = !state.termine.some(function (x) { return x.id === t.id; });
+    var h = '<section class="karte betont" aria-labelledby="h-tf"><h2 id="h-tf">' + (neu ? 'Neuer Eintrag' : 'Eintrag bearbeiten') + '</h2><div class="felder">';
+    h += '<div class="feld" style="grid-column:1/-1"><label for="tf-titel">Titel</label><input id="tf-titel" data-tf="titel" value="' + esc(t.titel) + '" placeholder="z. B. Klausur Sportmedizin" autocomplete="off"></div>';
+    h += '<div class="feld"><label for="tf-typ">Art</label><select id="tf-typ" data-tf="typ">' + Object.keys(TERMIN_TYP).map(function (k) { return '<option value="' + k + '"' + (t.typ === k ? ' selected' : '') + '>' + TERMIN_TYP[k] + '</option>'; }).join('') + '</select></div>';
+    h += '<div class="feld"><label for="tf-datum">Datum</label><input id="tf-datum" data-tf="datum" type="date" value="' + esc(t.datum) + '"></div>';
+    h += '<div class="feld"><label for="tf-zeit">Uhrzeit (optional)</label><input id="tf-zeit" data-tf="zeit" type="time" value="' + esc(t.zeit) + '"></div>';
+    h += '<div class="feld"><label for="tf-modul">Modul</label><select id="tf-modul" data-tf="modulId">' + modulOptionen(t.modulId, true) + '</select></div>';
+    h += '</div><p class="leise" id="tf-fehler" role="alert"></p><div style="display:flex;gap:10px;justify-content:flex-end"><button type="button" class="btn" data-action="termin-abbruch">Abbrechen</button><button type="button" class="btn primaer" data-action="termin-speichern">Speichern</button></div></section>';
+    return h;
+  }
+  function terminOeffnen(t, typ, modulId) {
+    terminEntwurf = t ? JSON.parse(JSON.stringify(t)) : { id: neueId('t'), titel: modulId && MOD[modulId] ? (typ === 'pruefung' ? 'Prüfung ' : '') + MOD[modulId].name : '', typ: typ || 'termin', datum: isoDatum(new Date()), zeit: '', modulId: modulId || '', erledigt: false };
+    loeschId = null;
+    if (ansicht !== 'termine') location.hash = 'termine'; else render();
+    setTimeout(function () { var f = document.getElementById('tf-titel'); if (f) { f.focus(); window.scrollTo(0, 0); } }, 30);
+  }
+
+  // ================= Daten & Sicherung =================
+  var importVorschau = null, importFehler = '', exportStatus = '';
+  function exportObjekt() { return { app: 'StudiCockpit', format: 2, exportiert: new Date().toISOString(), state: state }; }
+  function datenAnsicht() {
+    var h = '<header class="kopf"><div><p>' + (db ? 'Deine Daten liegen im claude.ai-Speicher und sind auf allen Geräten gleich.' : 'Deine Daten liegen nur auf diesem Gerät.') + '</p><h1>Daten &amp; Sicherung</h1></div></header>';
+    var anz = state.belegungen.length + ' Veranstaltungen, ' + state.termine.length + ' Termine, ' + Object.keys(state.modulErgebnis).length + ' Modulergebnisse';
+    h += '<div class="reihe" style="align-items:flex-start">';
+    h += '<section class="karte" style="flex:1 1 320px" aria-labelledby="h-exp"><h2 id="h-exp">Sicherung speichern</h2><p class="leise">Enthält alles, was du eingetragen hast: ' + esc(anz) + '. Damit kannst du deine Daten auf ein anderes Gerät mitnehmen.</p><div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn primaer" data-action="export-datei">Als Datei herunterladen</button><button type="button" class="btn" data-action="export-kopie">In die Zwischenablage kopieren</button></div><p class="leise" role="status" id="export-status">' + esc(exportStatus) + '</p></section>';
+    h += '<section class="karte" style="flex:1 1 320px" aria-labelledby="h-imp"><h2 id="h-imp">Sicherung laden</h2><p class="leise">Ersetzt die Daten auf diesem Gerät durch die Sicherung.</p>';
+    h += '<label class="btn" for="import-datei" style="align-self:flex-start;cursor:pointer">Datei auswählen</label><input id="import-datei" type="file" accept=".json,application/json" class="sr">';
+    h += '<div class="feld"><label for="import-text">Oder Sicherung hier einfügen</label><textarea id="import-text" placeholder="{ &quot;app&quot;: &quot;StudiCockpit&quot;, … }" style="min-height:90px;font-family:monospace;font-size:12px"></textarea></div><div><button type="button" class="btn" data-action="import-pruefen">Eingefügten Text prüfen</button></div>';
+    if (importFehler) h += '<div class="konflikt warn" role="alert"><span aria-hidden="true">⚠</span><span>' + esc(importFehler) + '</span></div>';
+    if (importVorschau) {
+      var v = importVorschau;
+      h += '<div class="notiz" style="padding:14px;border-radius:14px;background:var(--accent-bg);display:flex;flex-direction:column;gap:10px"><b>Sicherung erkannt</b><span class="leise" style="color:var(--soft)">' + v.belegungen.length + ' Veranstaltungen (' + esc(v.belegungen.map(function (b) { return b.titel; }).slice(0, 4).join(', ')) + (v.belegungen.length > 4 ? ' …' : '') + '), ' + v.termine.length + ' Termine, ' + v.aufgaben.length + ' Aufgaben' + (v.schwerpunkt ? ', Schwerpunkt ' + esc(SP_NAME[v.schwerpunkt]) : '') + '.</span><div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn primaer" data-action="import-ja">Ja, Daten übernehmen</button><button type="button" class="btn" data-action="import-nein">Abbrechen</button></div></div>';
+    }
+    h += '</section></div>';
+    return h;
+  }
+  function importLesen(text) {
+    importFehler = ''; importVorschau = null;
+    try {
+      var o = JSON.parse(text), s = o && o.state ? o.state : o;
+      if (!s || typeof s !== 'object' || (!Array.isArray(s.belegungen) && !Array.isArray(s.kurse))) throw new Error('kein StudiCockpit');
+      importVorschau = normalisieren(s); delete importVorschau._migriert;
+    } catch (e) { importFehler = 'Das ist keine gültige StudiCockpit-Sicherung. Bitte die ganze Datei bzw. den ganzen kopierten Text verwenden.'; }
+    render();
+  }
+
+  // ================= Veranstaltungs-Dialog =================
+  function konflikte(d) {
+    var res = [];
+    d.termine.forEach(function (t, i) {
+      var a = minuten(t.von), b = minuten(t.bis);
+      if (b <= a) { res.push({ warn: true, text: 'Termin ' + (i + 1) + ': Ende liegt vor dem Beginn.' }); return; }
+      state.belegungen.forEach(function (k) {
+        if (k.id === d.id || k.status === 'bestanden') return;
+        if (k.semester !== d.semester) return;
+        k.termine.forEach(function (u) {
+          if (u.tag !== t.tag) return;
+          if ((t.rhythmus === 'gerade' && u.rhythmus === 'ungerade') || (t.rhythmus === 'ungerade' && u.rhythmus === 'gerade')) return;
+          if (a < minuten(u.bis) && minuten(u.von) < b) res.push({ warn: true, text: TAGE_LANG[t.tag] + ' ' + t.von + '–' + t.bis + ' überschneidet sich mit ' + k.titel + ' (' + u.von + '–' + u.bis + ').' });
+        });
+      });
+    });
+    if (d.lvId && LV[d.lvId] && d.status !== 'bestanden') {
+      lvPruefen(LV[d.lvId], d.semester).gruende.forEach(function (g) { if (g.art !== 'ok') res.push({ warn: true, text: (g.art === 'hinweis' ? 'Hinweis: ' : '') + g.text }); });
+    }
+    if (!res.length && (d.termine.length || d.lvId)) res.push({ warn: false, text: d.termine.length ? 'Keine Überschneidungen und keine fehlenden Voraussetzungen.' : 'Keine fehlenden Voraussetzungen.' });
+    return res;
+  }
+  function konfliktHtml() { return konflikte(entwurf).map(function (c) { return '<div class="konflikt ' + (c.warn ? 'warn' : 'ok') + '"><span aria-hidden="true">' + (c.warn ? '⚠' : '✓') + '</span><span>' + esc(c.text) + '</span></div>'; }).join(''); }
+  function zeitOptionen(sel) { var o = ''; for (var m = 7 * 60; m <= 21 * 60; m += 15) { var v = ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2); o += '<option' + (v === sel ? ' selected' : '') + '>' + v + '</option>'; } return o; }
+  function dialogHtml() {
+    var d = entwurf, neu = !state.belegungen.some(function (k) { return k.id === d.id; });
+    var lv = LV[d.lvId];
+    var h = '<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-h"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="dlg-h">' + (neu ? 'Veranstaltung eintragen' : 'Veranstaltung bearbeiten') + '</h2><button type="button" class="icon-btn" data-action="dlg-zu" aria-label="Schließen">×</button></div>';
+    h += '<div class="feld"><label for="f-lv">Aus dem Modulhandbuch</label><select id="f-lv" data-f="lvId"><option value="">Eigene Veranstaltung (z. B. Optionalbereich)</option>';
+    SG.module.forEach(function (m) {
+      if (!m.lv.length || !spAktiv(m)) return;
+      h += '<optgroup label="' + esc(modulTitel(m.id)) + '">';
+      m.lv.forEach(function (l) { h += '<option value="' + l.id + '"' + (d.lvId === l.id ? ' selected' : '') + '>' + esc(l.titel) + ' (' + l.art + ', ' + (l.cpOptionen ? l.cpOptionen.join('/') : fmtCP(l.cp)) + ' CP)</option>'; });
+      h += '</optgroup>';
+    });
+    h += '</select></div>';
+    h += '<div class="feld"><label for="f-titel">Name</label><input id="f-titel" data-f="titel" value="' + esc(d.titel) + '" autocomplete="off"></div>';
+    h += '<div class="felder"><div class="feld"><label for="f-modul">Zählt für</label><select id="f-modul" data-f="modulId">' + modulOptionen(d.modulId, false) + '<option value="SONST"' + (d.modulId === 'SONST' ? ' selected' : '') + '>Zählt nicht für den Abschluss</option></select></div>';
+    h += '<div class="feld"><label for="f-cp">Credit Points</label>' + (lv && lv.cpOptionen ? '<select id="f-cp" data-f="cp">' + lv.cpOptionen.map(function (c) { return '<option value="' + c + '"' + (d.cp === c ? ' selected' : '') + '>' + c + ' CP (' + (c === 3 ? '2 SWS' : '4 SWS') + ')</option>'; }).join('') + '</select>' : '<input id="f-cp" data-f="cp" type="text" inputmode="decimal" autocomplete="off" value="' + fmtCP(d.cp) + '">') + '</div>';
+    h += '<div class="feld"><label for="f-status">Status</label><select id="f-status" data-f="status">' + Object.keys(BELEG_STATUS).map(function (s) { return '<option value="' + s + '"' + (d.status === s ? ' selected' : '') + '>' + BELEG_STATUS[s] + '</option>'; }).join('') + '</select></div>';
+    h += '<div class="feld"><label for="f-sem">Semester</label><select id="f-sem" data-f="semester">' + SEMESTER.map(function (s, i) { return '<option value="' + s + '"' + (d.semester === s ? ' selected' : '') + '>' + s + ' (' + (i + 1) + '.)</option>'; }).join('') + '</select></div></div>';
+    h += '<div class="feld"><span class="lbl">Termine</span>';
+    if (!d.termine.length) h += '<p class="leise">Noch kein Termin, z. B. bei Blockseminaren oder wenn die Zeit noch offen ist.</p>';
+    d.termine.forEach(function (t, i) {
+      h += '<div class="termin"><div class="feld"><label for="t-tag-' + i + '">Tag</label><select id="t-tag-' + i + '" data-t="' + i + '" data-k="tag">' + TAGE_LANG.map(function (n, j) { return '<option value="' + j + '"' + (t.tag === j ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></div>';
+      h += '<div class="feld"><label for="t-von-' + i + '">Von</label><select id="t-von-' + i + '" data-t="' + i + '" data-k="von">' + zeitOptionen(t.von) + '</select></div>';
+      h += '<div class="feld"><label for="t-bis-' + i + '">Bis</label><select id="t-bis-' + i + '" data-t="' + i + '" data-k="bis">' + zeitOptionen(t.bis) + '</select></div>';
+      h += '<div class="feld"><label for="t-rh-' + i + '">Rhythmus</label><select id="t-rh-' + i + '" data-t="' + i + '" data-k="rhythmus">' + ['woechentlich', 'gerade', 'ungerade'].map(function (r) { return '<option value="' + r + '"' + (t.rhythmus === r ? ' selected' : '') + '>' + rhythmusText(r) + '</option>'; }).join('') + '</select></div>';
+      h += '<button type="button" class="icon-btn" data-action="termin-weg" data-i="' + i + '" aria-label="Termin ' + (i + 1) + ' entfernen" style="font-size:18px;color:var(--muted)">×</button></div>';
+    });
+    h += '<div><button type="button" class="btn klein" data-action="termin-plus">+ Termin</button></div></div>';
+    h += '<div class="feld"><span class="lbl">Kurs-Check</span><div id="konflikte" style="display:flex;flex-direction:column;gap:6px" aria-live="polite">' + konfliktHtml() + '</div></div>';
+    h += '<div class="feld"><label for="f-moodle">Moodle-Link (optional)</label><input id="f-moodle" data-f="moodle" type="url" inputmode="url" value="' + esc(d.moodle) + '" placeholder="https://moodle.ruhr-uni-bochum.de/course/view.php?id=…"><small>Dann bringt dich ein Tipp im Stundenplan direkt zum Kurs.</small></div>';
+    h += '<div class="feld"><span class="lbl">Farbe im Stundenplan</span><div class="farbwahl">' + KURSFARBEN.map(function (f) { return '<button type="button" data-action="kursfarbe" data-c="' + f + '" aria-pressed="' + (d.farbe === f) + '" aria-label="Farbe ' + f + '" style="background:' + f + '"></button>'; }).join('') + '</div></div>';
+    h += '<div class="feld"><label for="f-notiz">Kurze Notiz</label><textarea id="f-notiz" data-f="notiz" placeholder="Raum, Dozent:in, Prüfungsform …">' + esc(d.notiz) + '</textarea></div>';
+    h += '<div class="fuss"><div>';
+    if (!neu) h += loeschBestaetigen ? '<button type="button" class="btn gefahr" data-action="loeschen-ja">Wirklich löschen</button> <button type="button" class="btn klein" data-action="loeschen-nein">Abbrechen</button>' : '<button type="button" class="btn gefahr" data-action="loeschen">Löschen</button>';
+    h += '</div><div style="display:flex;gap:10px;flex-wrap:wrap">' + (!neu && d.moodle ? '<a class="btn" href="' + esc(d.moodle) + '" target="_blank" rel="noopener">Moodle öffnen</a>' : '') + '<button type="button" class="btn" data-action="dlg-zu">Abbrechen</button><button type="button" class="btn primaer" data-action="dlg-speichern">Speichern</button></div></div></div>';
+    return h;
+  }
+  function freieFarbe() { var benutzt = state.belegungen.map(function (k) { return k.farbe; }); return KURSFARBEN.filter(function (f) { return benutzt.indexOf(f) < 0; })[0] || KURSFARBEN[state.belegungen.length % KURSFARBEN.length]; }
+  function dialogOeffnen(kurs, vorlage) {
+    loeschBestaetigen = false;
+    if (kurs) entwurf = JSON.parse(JSON.stringify(kurs));
+    else {
+      entwurf = { id: neueId('k'), lvId: '', modulId: 'SONST', titel: '', cp: 0, status: 'laeuft', semester: aktSem(), farbe: freieFarbe(), termine: [{ tag: 0, von: '08:00', bis: '10:00', rhythmus: 'woechentlich' }], moodle: '', notiz: '' };
+      if (vorlage) Object.keys(vorlage).forEach(function (k) { entwurf[k] = vorlage[k]; });
+    }
+    document.getElementById('overlay').innerHTML = dialogHtml();
+    document.getElementById('overlay').hidden = false;
+    var f = document.getElementById(kurs || vorlage ? 'f-titel' : 'f-lv'); if (f) f.focus();
+  }
+  function dialogRender(fokusId) { document.getElementById('overlay').innerHTML = dialogHtml(); if (fokusId) { var f = document.getElementById(fokusId); if (f) f.focus(); } }
+  function dialogZu() { entwurf = null; var o = document.getElementById('overlay'); o.hidden = true; o.innerHTML = ''; }
+  document.getElementById('overlay').addEventListener('input', dialogEingabe);
+  document.getElementById('overlay').addEventListener('change', dialogEingabe);
+  function dialogEingabe(e) {
+    if (!entwurf) return;
+    var el = e.target, f = el.getAttribute('data-f'), t = el.getAttribute('data-t');
+    if (f) {
+      if (f === 'cp') entwurf.cp = Number(String(el.value).replace(',', '.')) || 0; else entwurf[f] = el.value;
+      if ((f === 'lvId' || f === 'semester' || f === 'status' || f === 'modulId') && e.type === 'change') {
+        if (f === 'lvId') { var l = LV[el.value]; if (l) { entwurf.titel = l.titel; entwurf.modulId = l.modul; entwurf.cp = l.cp; } }
+        dialogRender(el.id); return;
+      }
+    } else if (t !== null) {
+      var key = el.getAttribute('data-k'), ti = Number(t);
+      entwurf.termine[ti][key] = key === 'tag' ? Number(el.value) : el.value;
+      if (key === 'von' && minuten(entwurf.termine[ti].bis) <= minuten(el.value)) {
+        var nb = minuten(el.value) + 120; entwurf.termine[ti].bis = ('0' + Math.floor(nb / 60)).slice(-2) + ':' + ('0' + nb % 60).slice(-2);
+        var bisEl = document.getElementById('t-bis-' + t); if (bisEl) bisEl.value = entwurf.termine[ti].bis;
+      }
+    } else return;
+    var kc = document.getElementById('konflikte'); if (kc) kc.innerHTML = konfliktHtml();
+  }
+
+  // ================= Aktionen =================
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-action]');
+    if (!el) { if (e.target.id === 'overlay') dialogZu(); return; }
+    var a = el.getAttribute('data-action'), id = el.getAttribute('data-id');
+    if (a === 'farbe') { state.farbe = el.getAttribute('data-farbe'); speichern(); render(); }
+    else if (a === 'kurs-neu') dialogOeffnen(null);
+    else if (a === 'kurs-edit') { var k = state.belegungen.filter(function (x) { return x.id === id; })[0]; if (k) dialogOeffnen(k); }
+    else if (a === 'lv-eintragen') {
+      var lv = LV[el.getAttribute('data-lv')], mod = el.getAttribute('data-modul');
+      if (lv) dialogOeffnen(null, { lvId: lv.id, modulId: lv.modul, titel: lv.titel, cp: lv.cp, status: 'geplant', semester: naechstesSem(), termine: [] });
+      else if (mod) dialogOeffnen(null, { modulId: mod, status: 'geplant', semester: aktSem(), termine: [] });
+    }
+    else if (a === 'dlg-zu') dialogZu();
+    else if (a === 'termin-plus') { var lt = entwurf.termine[entwurf.termine.length - 1]; entwurf.termine.push(lt ? { tag: Math.min(4, lt.tag + 1), von: lt.von, bis: lt.bis, rhythmus: lt.rhythmus } : { tag: 0, von: '08:00', bis: '10:00', rhythmus: 'woechentlich' }); dialogRender(); }
+    else if (a === 'termin-weg') { entwurf.termine.splice(Number(el.getAttribute('data-i')), 1); dialogRender(); }
+    else if (a === 'kursfarbe') { entwurf.farbe = el.getAttribute('data-c'); dialogRender(); }
+    else if (a === 'loeschen') { loeschBestaetigen = true; dialogRender(); }
+    else if (a === 'loeschen-nein') { loeschBestaetigen = false; dialogRender(); }
+    else if (a === 'loeschen-ja') { var did = entwurf.id; state.belegungen = state.belegungen.filter(function (x) { return x.id !== did; }); dialogZu(); speichern(); render(); }
+    else if (a === 'dlg-speichern') {
+      var d = entwurf;
+      if (!d.titel.trim()) { var ti = document.getElementById('f-titel'); ti.focus(); ti.setAttribute('aria-invalid', 'true'); ti.placeholder = 'Bitte einen Namen eintragen'; return; }
+      d.titel = d.titel.trim();
+      d.moodle = /^https?:\/\//i.test((d.moodle || '').trim()) ? d.moodle.trim() : '';
+      var idx = state.belegungen.map(function (x) { return x.id; }).indexOf(d.id);
+      if (idx >= 0) state.belegungen[idx] = d; else state.belegungen.push(d);
+      dialogZu(); speichern(); render();
+    }
+    else if (a === 'woche') { var dd = Number(el.getAttribute('data-d')); wochenOffset = dd === 0 ? 0 : wochenOffset + dd; render(); }
+    else if (a === 'studium-tab') { studiumTab = el.getAttribute('data-tab'); render(); }
+    else if (a === 'filter') { modulFilter = el.getAttribute('data-f'); render(); }
+    else if (a === 'modul') { var m = el.getAttribute('data-m'); offenesModul = offenesModul === m ? null : m; render(); }
+    else if (a === 'schwerpunkt') { state.schwerpunkt = el.getAttribute('data-sp'); speichern(); render(); }
+    else if (a === 'nachweis') { state.nachweise[id] = !state.nachweise[id]; speichern(); render(); }
+    else if (a === 'planen') {
+      var pl = LV[el.getAttribute('data-lv')];
+      state.belegungen.push({ id: neueId('k'), lvId: pl.id, modulId: pl.modul, titel: pl.titel, cp: pl.cp, semester: el.getAttribute('data-sem'), status: 'geplant', farbe: freieFarbe(), termine: [], moodle: '', notiz: '' });
+      speichern(); render();
+    }
+    else if (a === 'aufgabe-toggle') { state.aufgaben.forEach(function (t) { if (t.id === id) t.erledigt = !t.erledigt; }); speichern(); render(); }
+    else if (a === 'aufgabe-del') { state.aufgaben = state.aufgaben.filter(function (t) { return t.id !== id; }); speichern(); render(); }
+    else if (a === 'termin-neu') terminOeffnen(null, el.getAttribute('data-typ'), el.getAttribute('data-m'));
+    else if (a === 'termin-edit') { var te = state.termine.filter(function (t) { return t.id === id; })[0]; if (te) terminOeffnen(te); }
+    else if (a === 'termin-abbruch') { terminEntwurf = null; render(); }
+    else if (a === 'termin-speichern') {
+      var tf = terminEntwurf, fe = document.getElementById('tf-fehler');
+      if (!tf.titel.trim()) { fe.textContent = 'Bitte einen Titel eintragen.'; document.getElementById('tf-titel').focus(); return; }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(tf.datum)) { fe.textContent = 'Bitte ein Datum wählen.'; document.getElementById('tf-datum').focus(); return; }
+      tf.titel = tf.titel.trim();
+      var ti2 = state.termine.map(function (t) { return t.id; }).indexOf(tf.id);
+      if (ti2 >= 0) state.termine[ti2] = tf; else state.termine.push(tf);
+      if (tf.typ === 'pruefung' && tf.modulId && ergebnis(tf.modulId).pruefung === 'offen') { state.modulErgebnis[tf.modulId] = { pruefung: 'angemeldet', note: null }; }
+      terminEntwurf = null; speichern(); render();
+    }
+    else if (a === 'termin-erledigt') { state.termine.forEach(function (t) { if (t.id === id) t.erledigt = true; }); speichern(); render(); }
+    else if (a === 'termin-del') { loeschId = id; render(); }
+    else if (a === 'termin-del-nein') { loeschId = null; render(); }
+    else if (a === 'termin-del-ja') { state.termine = state.termine.filter(function (t) { return t.id !== id; }); loeschId = null; speichern(); render(); }
+    else if (a === 'archiv') { archivOffen = !archivOffen; render(); }
+    else if (a === 'export-datei') {
+      try {
+        var blob = new Blob([JSON.stringify(exportObjekt(), null, 2)], { type: 'application/json' });
+        var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'studicockpit-sicherung-' + isoDatum(new Date()) + '.json';
+        document.body.appendChild(link); link.click(); link.remove();
+        exportStatus = 'Sicherung wird heruntergeladen. Falls nichts passiert, nimm „In die Zwischenablage kopieren“.';
+      } catch (x) { exportStatus = 'Herunterladen geht hier nicht. Nimm „In die Zwischenablage kopieren“.'; }
+      render();
+    }
+    else if (a === 'export-kopie') {
+      var txt = JSON.stringify(exportObjekt());
+      var fallback = function () { exportStatus = 'Kopieren wurde blockiert. Der Text steht jetzt im Feld „Sicherung hier einfügen“ – markieren und kopieren.'; render(); var ta = document.getElementById('import-text'); if (ta) { ta.value = txt; ta.select(); } };
+      try { navigator.clipboard.writeText(txt).then(function () { exportStatus = 'Kopiert. Füge den Text auf dem anderen Gerät unter „Sicherung laden“ ein.'; render(); }, fallback); } catch (x) { fallback(); }
+    }
+    else if (a === 'import-pruefen') { var it = document.getElementById('import-text'); importLesen(it ? it.value : ''); }
+    else if (a === 'import-nein') { importVorschau = null; render(); }
+    else if (a === 'import-ja') { state = importVorschau; importVorschau = null; exportStatus = ''; speichern(); location.hash = 'dashboard'; render(); }
+  });
+  document.addEventListener('submit', function (e) {
+    if (e.target.id !== 'aufgabe-form') return;
+    e.preventDefault();
+    var inp = document.getElementById('aufgabe-text'), txt = inp.value.trim();
+    if (!txt) return;
+    state.aufgaben.push({ id: neueId('a'), text: txt, erledigt: false });
+    inp.value = ''; speichern(); render();
+    var neu = document.getElementById('aufgabe-text'); if (neu) neu.focus();
+  });
+  document.addEventListener('change', function (e) {
+    var el = e.target;
+    if (el.id === 'geplante') { geplanteZeigen = el.checked; render(); }
+    else if (el.id === 'ziel-sem') { zielSemester = el.value; render(); }
+    else if (el.id === 'import-datei' && el.files && el.files[0]) { var fr = new FileReader(); fr.onload = function () { importLesen(String(fr.result)); }; fr.onerror = function () { importFehler = 'Die Datei konnte nicht gelesen werden.'; render(); }; fr.readAsText(el.files[0]); el.value = ''; }
+    else if (el.getAttribute && el.getAttribute('data-erg')) {
+      var mid = el.getAttribute('data-m'), feld = el.getAttribute('data-erg'), r = JSON.parse(JSON.stringify(ergebnis(mid)));
+      if (feld === 'pruefung') r.pruefung = el.value;
+      else { var n = Number(String(el.value).replace(',', '.')); r.note = n >= 1 && n <= 5 ? Math.round(n * 10) / 10 : null; if (r.note && (r.pruefung === 'offen' || r.pruefung === 'angemeldet')) r.pruefung = r.note <= 4 ? 'bestanden' : 'nicht_bestanden'; }
+      state.modulErgebnis[mid] = r; speichern(); render();
+    }
+  });
+  document.addEventListener('input', function (e) {
+    var k = e.target.getAttribute && e.target.getAttribute('data-tf');
+    if (k && terminEntwurf) terminEntwurf[k] = e.target.value;
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && entwurf) dialogZu(); });
+
+  // ================= Darstellung & Navigation =================
+  var ANSICHTEN = { dashboard: dashboard, studium: studium, stundenplan: stundenplan, termine: termine, daten: datenAnsicht };
+  function render() {
+    farbeAnwenden();
+    var main = document.getElementById('main'), scroll = window.scrollY;
+    var ae = document.activeElement, aktiv = ae && ae.id, auswahl = null;
+    try { if (ae && typeof ae.selectionStart === 'number') auswahl = [ae.selectionStart, ae.selectionEnd]; } catch (x) { /* kein Textfeld */ }
+    var alt = document.getElementById('aufgabe-text'), altWert = alt ? alt.value : '';
+    var html = (ANSICHTEN[ansicht] || dashboard)();
+    if (!ladeFertig && !state.belegungen.length) html += '<p class="leise">Lade deine Daten …</p>';
+    main.innerHTML = html;
+    var neu = document.getElementById('aufgabe-text'); if (neu && altWert) neu.value = altWert;
+    document.querySelectorAll('.nav a[data-view]').forEach(function (a) { if (a.getAttribute('data-view') === ansicht) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    if (aktiv && !entwurf) { var f = document.getElementById(aktiv); if (f) { f.focus({ preventScroll: true }); if (auswahl && f.setSelectionRange) { try { f.setSelectionRange(auswahl[0], auswahl[1]); } catch (x) { /* egal */ } } } }
+    window.scrollTo(0, scroll);
+  }
+  function zielAnsicht() {
+    var h = (location.hash || '').replace('#', '');
+    if (h === 'planer') return 'studium';
+    return ANSICHTEN[h] ? h : 'dashboard';
+  }
+  window.addEventListener('hashchange', function () {
+    var neu = zielAnsicht();
+    if (neu !== ansicht) { ansicht = neu; loeschId = null; if (neu !== 'termine') terminEntwurf = null; render(); window.scrollTo(0, 0); }
+  });
+  ansicht = zielAnsicht();
+  render();
+  setInterval(function () { var ae = document.activeElement; if (!entwurf && !terminEntwurf && !(ae && /INPUT|TEXTAREA|SELECT/.test(ae.tagName))) render(); }, 60000);
+  verbinden();
+})();
+</script>
